@@ -31,7 +31,11 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
   MarvelCDB lacks ~400 pictures (many villain/scheme a/b sides): `scripts/check-images.mjs` (weekly, in
   update-cards.yml) writes `src/data/images.json` {missing, jpg}; `imageUrls()` asks for the right file first,
   `CardImg` retries twice on errors, missing ones get a comic-styled `TextCard`, and menus use
-  `pictureOf()` / `scenarioPicture()` to pick a card from the set that has a picture.
+  `pictureOf()` / `scenarioPicture()` to pick a card from the set that has a picture. Second source:
+  `scripts/fetch-missing-images.mjs` downloads missing ones into `public/cards/<code>.jpg` (served by the game,
+  listed in images.json → local) from FFG's CDN (`lcgcdn.s3.amazonaws.com/mc/MC<product>en_<n><side>.jpg`, old
+  packs; prefix → product map `FFG`) and Hall of Heroes pack pages (scans named by code; slug map `HOH`), shrunk
+  to 560px. ~160 still have none (Mad Titan's Shadow a/b sides, Age of Apocalypse, Elektra, Iron Fist…).
 - `src/engine/text.ts` — reads card text: keywords (Guard, Toughness, Retaliate 2, Incite 1, Uses (3)…),
   constant modifiers ("Your hero gets +1 ATK"), "Attach to …", and abilities (`timing`, Hero/Alter-Ego form,
   `(attack)` tag, trigger + `window`, costs before "→", limits) whose effect sentences become `Step`s.
@@ -101,10 +105,11 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
 
 ## Next steps
 
-0. Kris's next session (agreed): (a) a second picture source for the ~400 cards MarvelCDB lacks
-   (`src/data/images.json` → missing), hosted in this repo; (b) automate the card text the game can't read
-   yet, so the "do this by hand" manual prompts go away (start from `npm run sim` manual counts and the
-   most common unread sentences).
+0. Card text automation in progress: read so far ~41% of player abilities, ~42% of encounter abilities
+   (core set 145/198). Engine steps added: encounter searches (`encSearch`), drones (facedown 1/1/1
+   minions), "if X is (not) in play", "(N instead if …)" yes/no, "for each …" counts (`countOf`),
+   look-at-top-N, counters on named cards, shield, win… Next: the long tail from the coverage script
+   (scenario-specific: Kang, Hood, Loki, Mojo, missions; resource-colour conditions).
 1. More card text read automatically (sim reports manual prompts): "for each …", "deal damage equal to",
    "it gets +N DEF for that defense", player-side "Search the encounter deck …", resource-colour conditions
    (track which resources paid), hero alt forms (Ant-Man/Wasp giant/tiny, Ironheart upgrades, SP//dr),

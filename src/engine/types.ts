@@ -40,11 +40,13 @@ export interface Inst {
 	tough: number
 	host?: number
 	/** temporary stat bonuses until the end of the phase */
-	bonus?: { atk?: number; thw?: number; def?: number; sch?: number }
+	bonus?: { atk?: number; thw?: number; def?: number; sch?: number; shield?: number }
 	/** abilities already used this round / phase (index) */
 	used?: number[]
 	/** for the main scheme: which side shows */
 	flipped?: boolean
+	/** a player card put into play facedown as a Drone minion */
+	facedown?: boolean
 }
 
 export interface Player {

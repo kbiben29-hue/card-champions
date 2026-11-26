@@ -768,8 +768,8 @@ function Tile({ g, x, size, glow, selected, marked, label, ...rest }: { g: Game;
 			style={{ ['--tilt' as string]: `${((x.uid * 37) % 7) - 3}deg` }}
 			{...rest}
 		>
-			<CardImg code={x.code} />
-			{label && <span className="tile-name">{c.n}</span>}
+			{x.facedown ? <div className="drone-back">DRONE</div> : <CardImg code={x.code} />}
+			{label && <span className="tile-name">{x.facedown ? 'Drone' : c.n}</span>}
 			<div className="badges">
 				{hp !== undefined && !isScheme && (
 					<span className="badge hp" title="Hit points left">

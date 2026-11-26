@@ -12,6 +12,7 @@ export * from './types'
 for (const c of CARDS) {
 	if (c.t === 'villain' || c.t === 'leader') NAMES.villains.add(c.n.toLowerCase())
 	if (c.t === 'hero' || c.t === 'alter_ego') NAMES.identities.add(c.n.toLowerCase())
+	if (c.n.length > 3) NAMES.cards.add(c.n.toLowerCase())
 }
 
 // ───────── random numbers (deterministic) ─────────
@@ -49,8 +50,29 @@ const log = (g: Game, t: string, p?: number) => {
 	if (g.log.length > 300) g.log.splice(0, g.log.length - 300)
 }
 const perHero = (g: Game, area: number) => g.areas[area].players.filter((p) => !g.players[p].out).length || 1
-const nval = (g: Game, n: number | 'X' | { per: number }, area: number, x = 0): number =>
-	typeof n === 'number' ? n : n === 'X' ? x : n.per * perHero(g, area)
+const nval = (g: Game, n: number | 'X' | { per: number } | { mul: number; count: string }, area: number, x = 0, p = -1): number =>
+	typeof n === 'number' ? n : n === 'X' ? x : 'per' in n ? n.per * perHero(g, area) : n.mul * countOf(g, area, p, n.count)
+
+/** "for each Drone minion engaged with you", "for each upgrade you control", "for each Hydra enemy in play"… */
+export function countOf(g: Game, area: number, p: number, what: string): number {
+	const w = what.toLowerCase().replace(/^(a|an) /, '')
+	const mine = /engaged with you|you control|in your/i.test(w)
+	const m = w.match(/^(?:(.+?) )?(minion|enemy|enemies|villain|ally|allies|upgrade|support|character|side scheme|scheme|player|hero|card)s?\b/)
+	if (!m) return 0
+	const trait = m[1]?.replace(/^(different|other|facedown)\s*/, '')
+	const kind = m[2]
+	let list = Object.values(g.insts).filter((x) => x.area === area && IN_PLAY.includes(x.zone))
+	if (kind === 'player' || kind === 'hero') return g.areas[area].players.filter((q) => !g.players[q].out).length
+	if (kind === 'minion') list = list.filter((x) => x.zone === 'engaged')
+	if (kind === 'enemy' || kind === 'enemies') list = list.filter((x) => x.zone === 'engaged' || x.zone === 'villain')
+	if (kind === 'ally' || kind === 'allies') list = list.filter((x) => x.zone === 'play' && card(x.code).t === 'ally')
+	if (kind === 'upgrade' || kind === 'support') list = list.filter((x) => x.zone === 'play' && card(x.code).t === kind)
+	if (kind === 'side scheme') list = list.filter((x) => x.zone === 'side')
+	if (kind === 'scheme') list = list.filter((x) => x.zone === 'side' || x.zone === 'main')
+	if (mine) list = list.filter((x) => x.ctrl === p)
+	if (trait) list = list.filter((x) => (trait === 'drone' && x.facedown) || (card(x.code).tr ?? '').toLowerCase().includes(trait) || card(x.code).n.toLowerCase() === trait)
+	return list.length
+}
 
 function make(g: Game, code: string, owner: number, area: number, zone: Zone): number {
 	const uid = g.next++
@@ -79,6 +101,13 @@ export const kw = (g: Game, uid: number, k: string): number => {
 /** Printed stat plus modifiers from attached cards, upgrades and phase bonuses. */
 export function stat(g: Game, uid: number, s: 'atk' | 'thw' | 'def' | 'sch' | 'rec' | 'hp' | 'hand'): number {
 	const i = I(g, uid)
+	if (i.facedown) {
+		// a facedown Drone minion: 1 ATK, 1 SCH, 1 hit point (Ultron and his cards add to it)
+		let n = s === 'atk' || s === 'sch' || s === 'hp' ? 1 : 0
+		for (const x of [I(g, g.areas[i.area].villain), ...inZone(g, i.area, 'env'), ...inZone(g, i.area, 'attached')])
+			if (/each (?:facedown )?drone minion gets \+1 atk and \+1 hit point/i.test((card(x.code).x ?? '').replace(/<[^>]+>/g, '')) && (s === 'atk' || s === 'hp')) n += 1
+		return n + (i.bonus?.[s as 'atk'] ?? 0)
+	}
 	const c = card(i.code)
 	let base = (c as unknown as Record<string, number | undefined>)[s] ?? 0
 	if (s === 'hp' && has(c, 'hpH')) base *= perHero(g, i.area)
@@ -417,6 +446,7 @@ function endPlayerPhase(g: Game, area: number) {
 }
 
 function endRound(g: Game) {
+	for (const x of Object.values(g.insts)) if (x.bonus) x.bonus = undefined
 	for (const ar of g.areas) {
 		// Temporary cards
 		for (const x of Object.values(g.insts)) if (x.area === ar.id && (x.zone === 'play' || x.zone === 'attached') && kw(g, x.uid, 'temporary')) discard(g, x.uid)
@@ -680,6 +710,7 @@ function stepActivate(g: Game, j: Extract<Job, { k: 'activate' }>): boolean {
 			}
 		}
 		for (const b of j.boosts) if (g.insts[b]?.zone === 'boost') moveTo(g, b, 'encDiscard')
+		for (const u of (j as { discardAfter?: number[] }).discardAfter ?? []) if (g.insts[u]) discard(g, u)
 		return true
 	}
 	return true
@@ -815,6 +846,10 @@ export function removeThreat(g: Game, uid: number, n: number, ctx: Ctx): number 
 export function damage(g: Game, uid: number, n: number, ctx: Ctx): number {
 	const i = g.insts[uid]
 	if (!i || n <= 0) return 0
+	if (i.bonus?.shield) {
+		log(g, `${nameOf(g, uid)} can't take damage this phase.`)
+		return 0
+	}
 	if (i.tough > 0) {
 		i.tough--
 		log(g, `${nameOf(g, uid)}'s tough status card prevents the damage.`)
@@ -946,6 +981,12 @@ function checkState(g: Game) {
 
 function defeatMinion(g: Game, uid: number) {
 	const x = I(g, uid)
+	if (x.facedown) {
+		log(g, `A Drone is defeated (its card goes back to its owner's discard pile).`, x.ctrl)
+		x.facedown = false
+		discard(g, uid)
+		return
+	}
 	const ctx: Ctx = { area: x.area, player: x.ctrl, src: uid }
 	log(g, `${card(x.code).n} is defeated.`, x.ctrl)
 	for (const a of attachments(g, uid)) {
@@ -1113,9 +1154,19 @@ function targetsFor(g: Game, who: Who, ctx: Ctx, attackTag = false): number[] {
 const crisis = (g: Game, area: number) => sides(g, area).some((s) => (card(s.code).ic?.cri ?? 0) > 0)
 
 /** The cards a "each X" / fixed reference means. */
+const IN_PLAY: Zone[] = ['villain', 'engaged', 'side', 'main', 'env', 'attached', 'play', 'identity']
+/** Cards in play in this game area with this name (case-insensitive). */
+export function named(g: Game, area: number, name: string): number[] {
+	const n = name.toLowerCase()
+	return Object.values(g.insts)
+		.filter((x) => x.area === area && IN_PLAY.includes(x.zone) && !x.facedown && card(x.code).n.toLowerCase() === n)
+		.map((x) => x.uid)
+}
+
 function fixedTargets(g: Game, who: Who, ctx: Ctx): number[] | null {
 	const ar = g.areas[ctx.area]
 	const p = ctx.player
+	if (who.startsWith('named:')) return named(g, ctx.area, who.slice(6))
 	switch (who) {
 		case 'villain':
 			return [ar.villain]
@@ -1188,7 +1239,7 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 		case 'dmg': {
 			const t = refs(s.to)
 			if (!t) return false
-			const n = nval(g, s.n, area, stat(g, g.players[p].ident, 'atk'))
+			const n = nval(g, s.n, area, stat(g, g.players[p].ident, 'atk'), p)
 			let any = 0
 			for (const u of t) {
 				any += damage(g, u, n, ctx)
@@ -1201,7 +1252,7 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 		case 'thwart': {
 			const t = refs(s.from)
 			if (!t) return false
-			const n = nval(g, s.n, area, stat(g, g.players[p].ident, 'thw'))
+			const n = nval(g, s.n, area, stat(g, g.players[p].ident, 'thw'), p)
 			let any = 0
 			for (const u of t) any += removeThreat(g, u, n, ctx)
 			if (t.length) log(g, `${srcName}: removes ${n} threat from ${t.map((u) => (g.insts[u] ? nameOf(g, u) : 'a scheme')).join(', ')}.`, p)
@@ -1211,13 +1262,13 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 		case 'threat': {
 			const t = refs(s.on)
 			if (!t) return false
-			const n = nval(g, s.n, area)
+			const n = nval(g, s.n, area, 0, p)
 			for (const u of t) placeThreat(g, u, n, ctx)
 			ctx.did = t.length > 0
 			return next()
 		}
 		case 'draw': {
-			const n = nval(g, s.n, area)
+			const n = nval(g, s.n, area, 0, p)
 			const who = s.each ? g.areas[area].players.filter((q) => !g.players[q].out) : [p]
 			for (const q of who) draw(g, q, n)
 			log(g, `${srcName}: draw ${n}.`, p)
@@ -1228,7 +1279,7 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 			const t = refs(s.who)
 			if (!t) return false
 			let any = 0
-			for (const u of t) any += heal(g, u, s.n === 'all' ? 'all' : nval(g, s.n, area))
+			for (const u of t) any += heal(g, u, s.n === 'all' ? 'all' : nval(g, s.n, area, 0, p))
 			if (t.length) log(g, `${srcName}: heals ${any} damage from ${t.map((u) => nameOf(g, u)).join(', ')}.`, p)
 			ctx.did = any > 0
 			return next()
@@ -1366,9 +1417,12 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 			return j.i >= j.steps.length
 		}
 		case 'counter': {
-			const x = g.insts[src]
-			if (x) x.ctr = Math.max(0, x.ctr + s.n)
-			ctx.did = true
+			const t = s.who ? (fixedTargets(g, s.who, ctx) ?? []) : [src]
+			for (const u of t) {
+				const x = g.insts[u]
+				if (x) x.ctr = Math.max(0, x.ctr + s.n)
+			}
+			ctx.did = t.length > 0
 			return next()
 		}
 		case 'choosePlayer': {
@@ -1380,6 +1434,233 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 			}
 			// later steps ("that player …") act for the chosen player
 			j.ctx = { ...ctx, player: ps[j.pick] ?? p }
+			return next()
+		}
+		case 'noop':
+			return next()
+		case 'win':
+			g.areas[area].result = 'win'
+			log(g, `${srcName}: the players win!`)
+			return next()
+		case 'encReshuffle': {
+			const ar = g.areas[area]
+			ar.encDeck = shuffle(g, [...ar.encDeck, ...ar.encDiscard.splice(0)])
+			for (const u of ar.encDeck) I(g, u).zone = 'encDeck'
+			return next()
+		}
+		case 'accel':
+			I(g, g.areas[area].main).ctr += s.n
+			log(g, `${srcName}: +${s.n} acceleration on the main scheme.`)
+			return next()
+		case 'defeat': {
+			const t = refs(s.who)
+			if (!t) return false
+			for (const u of t) if (g.insts[u]?.zone === 'engaged' && !/\belite\b/i.test(C(g, u).tr ?? '')) defeatMinion(g, u)
+			return next()
+		}
+		case 'shield': {
+			const v = I(g, g.areas[area].villain)
+			v.bonus = { ...(v.bonus ?? {}), shield: 1 }
+			return next()
+		}
+		case 'otherwise': {
+			j.i++
+			if (!ctx.did) pushSteps(g, s.steps, ctx)
+			return false
+		}
+		case 'ifInPlay': {
+			const here = named(g, area, s.name).length > 0
+			j.i++
+			if (here !== s.not) pushSteps(g, s.steps, ctx)
+			else ctx.did = false
+			return false
+		}
+		case 'ifStatus': {
+			const t = fixedTargets(g, s.who, ctx) ?? []
+			const has = t.some((u) => (g.insts[u]?.[s.s] ?? 0) > 0)
+			j.i++
+			if (has) pushSteps(g, s.steps, ctx)
+			return false
+		}
+		case 'forEachPlayer': {
+			j.i++
+			const ps = rotate(g.areas[area].players, g.areas[area].first).filter((q) => !g.players[q].out)
+			for (const q of [...ps].reverse()) pushSteps(g, s.steps, { ...ctx, player: q })
+			return false
+		}
+		case 'drone': {
+			const ps = s.each ? g.areas[area].players.filter((q) => !g.players[q].out) : [s.first ? g.areas[area].players[g.areas[area].first] : p]
+			for (const q of ps) {
+				const pl = g.players[q]
+				for (let k = 0; k < s.n; k++) {
+					if (!pl.deck.length) break
+					const u = pl.deck.shift()!
+					const x = I(g, u)
+					x.zone = 'engaged'
+					x.ctrl = q
+					x.facedown = true
+					log(g, `${pl.name} gets a Drone (the top card of their deck, facedown).`, q)
+				}
+			}
+			ctx.did = true
+			return next()
+		}
+		case 'revealTop': {
+			const u = drawEncounter(g, area)
+			j.i++
+			if (u !== null) {
+				I(g, u).zone = 'dealt'
+				I(g, u).ctrl = p
+				g.jobs.push({ k: 'reveal', area, player: p, uid: u, step: 0, fromDeck: true })
+			}
+			return false
+		}
+		case 'enemyAttacks': {
+			const t = fixedTargets(g, s.who, ctx) ?? []
+			j.i++
+			for (const u of t) if (g.insts[u]?.zone === 'engaged' || g.insts[u]?.zone === 'villain') g.jobs.push(activation(g, area, u, p, 'attack'))
+			return false
+		}
+		case 'discardAfterAttack': {
+			const aj = [...g.jobs].reverse().find((x) => x.k === 'activate') as (Job & { discardAfter?: number[] }) | undefined
+			if (aj) aj.discardAfter = [...(aj.discardAfter ?? []), src]
+			return next()
+		}
+		case 'thatCard':
+		case 'manualLook':
+			return next()
+		case 'lookTop': {
+			const pl = g.players[p]
+			const top = pl.deck.slice(0, s.n)
+			if (!top.length) return next()
+			if (j.pick === undefined || !top.includes(j.pick)) {
+				if (top.length === 1) j.pick = top[0]
+				else {
+					ask(g, { who: p, kind: 'searchPick', options: top, text: `${srcName}: pick a card for your hand (the others are discarded).`, card: src })
+					return false
+				}
+			}
+			moveTo(g, j.pick, 'hand')
+			for (const u of top) if (u !== j.pick && pl.deck.includes(u)) moveTo(g, u, 'discard')
+			return next()
+		}
+		case 'traitAttack': {
+			const trait = s.trait.toLowerCase()
+			const list = Object.values(g.insts).filter(
+				(x) => x.area === area && x.zone === 'engaged' && (!s.mine || x.ctrl === p) && ((trait === 'drone' && x.facedown) || (card(x.code).tr ?? '').toLowerCase().includes(trait)),
+			)
+			ctx.did = list.length > 0
+			j.i++
+			for (const x of [...list].reverse()) if (g.players[x.ctrl]?.form === 'hero') g.jobs.push(activation(g, area, x.uid, x.ctrl, 'attack'))
+			return false
+		}
+		case 'encSearch': {
+			const ar = g.areas[area]
+			const what = s.what.toLowerCase().replace(/^(the|a|an) /, '').replace(/[.]$/, '')
+			const kind = what.match(/\b(minion|side scheme|treachery|attachment|environment)$/)?.[1]?.replace(' ', '_')
+			const core = what.replace(/\s*\b(minion|side scheme|treachery|attachment|environment|card)$/, '').trim()
+			const pool = [...ar.encDeck, ...(s.discard ? ar.encDiscard : []), ...Object.values(g.insts).filter((x) => x.area === area && x.zone === 'setAside').map((x) => x.uid)]
+			const fits = (u: number) => {
+				const c = C(g, u)
+				if (kind && c.t !== kind) return false
+				if (!core) return true
+				const tr = (c.tr ?? '').toLowerCase()
+				return c.n.toLowerCase() === core || tr.split(/\.\s*/).includes(core) || (core.split(' ').length > 1 && c.n.toLowerCase().startsWith(core))
+			}
+			const found = pool.find(fits)
+			ctx.did = found !== undefined
+			j.i++
+			if (found === undefined) {
+				log(g, `${srcName}: no “${s.what}” found.`, p)
+				return false
+			}
+			ar.encDeck = ar.encDeck.filter((u) => u !== found)
+			ar.encDiscard = ar.encDiscard.filter((u) => u !== found)
+			shuffle(g, ar.encDeck)
+			const x = I(g, found)
+			x.ctrl = p
+			log(g, `${srcName}: ${nameOf(g, found)} is found.`, p)
+			if (s.then === 'hand') {
+				moveTo(g, found, 'encDiscard')
+			} else if (s.then === 'reveal') {
+				x.zone = 'dealt'
+				g.jobs.push({ k: 'reveal', area, player: p, uid: found, step: 0, fromDeck: false })
+			} else {
+				// put into play: no "When Revealed"
+				const c = card(x.code)
+				if (c.t === 'minion') {
+					x.zone = 'engaged'
+					if (kw(g, found, 'toughness')) x.tough = 1
+				} else if (c.t === 'side_scheme') {
+					x.zone = 'side'
+					x.thr = (c.bt ?? 0) * (has(c, 'btF') ? 1 : perHero(g, area))
+				} else if (c.t === 'attachment') {
+					x.zone = 'attached'
+					x.host = attachHost(g, area, parse(c).attach) ?? ar.villain
+				} else if (c.t === 'environment') x.zone = 'env'
+				else {
+					x.zone = 'dealt'
+					g.jobs.push({ k: 'reveal', area, player: p, uid: found, step: 0, fromDeck: false })
+				}
+			}
+			return false
+		}
+		case 'encMill': {
+			const ar = g.areas[area]
+			let k = 0
+			let last: number | undefined
+			while (k < s.n) {
+				const u = drawEncounter(g, area)
+				if (u === null) break
+				moveTo(g, u, 'encDiscard')
+				last = u
+				k++
+				if (s.until && (C(g, u).t === s.until.toLowerCase().replace(' ', '_') || (C(g, u).tr ?? '').toLowerCase().includes(s.until.toLowerCase()))) break
+			}
+			ctx.that = last
+			ctx.did = k > 0
+			if (k) log(g, `${srcName}: ${k} encounter card${k > 1 ? 's' : ''} discarded${last !== undefined ? ` (last: ${nameOf(g, last)})` : ''}.`, p)
+			void ar
+			return next()
+		}
+		case 'deckMill': {
+			const ps = s.each ? g.areas[area].players.filter((q) => !g.players[q].out) : [p]
+			for (const q of ps) for (let k = 0; k < s.n && g.players[q].deck.length; k++) moveTo(g, g.players[q].deck[0], 'discard')
+			ctx.did = true
+			return next()
+		}
+		case 'discardHand': {
+			const ps = s.each ? g.areas[area].players.filter((q) => !g.players[q].out) : [p]
+			let any = false
+			for (const q of ps) {
+				for (let k = 0; k < s.n; k++) {
+					const h = g.players[q].hand
+					if (!h.length) break
+					// a player's own choice where the card says so would be nicer; at random keeps the game moving
+					const u = h[Math.floor(rand(g) * h.length)]
+					moveTo(g, u, 'discard')
+					log(g, `${g.players[q].name} discards ${nameOf(g, u)}.`, q)
+					any = true
+				}
+			}
+			ctx.did = any
+			return next()
+		}
+		case 'shuffleIn': {
+			const x = g.insts[src]
+			if (x) {
+				moveTo(g, src, 'encDeck')
+				shuffle(g, g.areas[area].encDeck)
+			}
+			return next()
+		}
+		case 'attachSelf': {
+			const t = fixedTargets(g, s.who, ctx) ?? targetsFor(g, s.who, ctx)
+			const x = g.insts[src]
+			if (x && t.length) {
+				x.zone = x.owner >= 0 ? 'play' : 'attached'
+				x.host = t[0]
+			}
 			return next()
 		}
 		case 'exhaustHeroCost': {
@@ -1480,6 +1761,14 @@ function markSurge(g: Game, src: number) {
 	else {
 		// surge from a card that isn't being revealed (e.g. a boost): nothing to do
 	}
+}
+
+/** Resolve these steps as if card `src` did them (for tests and the table tools). */
+export function resolveSteps(g0: Game, steps: Step[], ctx: Ctx): Game {
+	const g = structuredClone(g0)
+	pushSteps(g, steps, ctx)
+	run(g)
+	return g
 }
 
 export function describe(s: Step): string {

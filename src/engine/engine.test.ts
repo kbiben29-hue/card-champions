@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { card, heroes, scenarios } from '../data/data'
-import { apply, attackTargets, newGame, playProblem, stat, thwartTargets, type Game, type Intent } from './engine'
+import { apply, attackTargets, named, newGame, playProblem, resolveSteps, stat, thwartTargets, type Game, type Intent } from './engine'
 import { autoIntent } from './autoplay'
 import { deckCodes, starterDeck } from './decks'
 import { parse } from './text'
@@ -156,4 +156,62 @@ test('Civil War: two teams, each against the other leader, play out', () => {
 	g = playOut(g)
 	assert.equal(g.phase, 'over')
 	assert.ok(g.winner)
+})
+
+test('the text reader: "instead if", "for each", drones, encounter searches', () => {
+	const punch = parse(card('01032')).abilities[0].steps[0]
+	assert.equal(punch.k, 'choose')
+	if (punch.k === 'choose') {
+		assert.deepEqual(punch.options[0].steps, [{ k: 'dmg', n: 8, to: 'enemy' }])
+		assert.deepEqual(punch.options[1].steps, [{ k: 'dmg', n: 4, to: 'enemy' }])
+	}
+	assert.deepEqual(parse(card('01144a')).abilities[0].steps, [{ k: 'drone', n: 1, each: true, first: false }])
+	const repair = parse(card('01146')).abilities[0].steps
+	assert.deepEqual(repair[0], { k: 'heal', n: { mul: 2, count: 'Drone minion engaged with you' }, who: 'villain' })
+	const legions = parse(card('01180')).abilities[0].steps
+	assert.equal(legions[0].k, 'ifInPlay')
+	assert.ok(parse(card('01180')).abilities.every((a) => a.steps.every((st) => st.k !== 'manual')))
+})
+
+test('drones: facedown 1/1/1 minions that go back to their owner\'s discard pile', () => {
+	let g = ready(game('ultron'))
+	const deck = g.players[0].deck.length
+	g = resolveSteps(g, [{ k: 'drone', n: 1, each: true }], { area: 0, player: 0, src: g.areas[0].main })
+	const drone = Object.values(g.insts).find((x) => x.facedown)!
+	assert.ok(drone)
+	assert.equal(g.players[0].deck.length, deck - 1)
+	assert.equal(drone.zone, 'engaged')
+	assert.equal(stat(g, drone.uid, 'hp'), 1)
+	assert.equal(stat(g, drone.uid, 'sch'), 1)
+	g = resolveSteps(g, [{ k: 'dmg', n: 1, to: 'that' }], { area: 0, player: 0, src: g.areas[0].main, that: drone.uid })
+	assert.equal(g.insts[drone.uid].zone, 'discard')
+	assert.equal(g.insts[drone.uid].facedown, false)
+})
+
+test('encounter searches put a named minion into play; "if X is not in play" checks first', () => {
+	let g = ready(game('crossbones'))
+	const steps = parse(card('01180')).abilities[0].steps
+	const ctx = { area: 0, player: 0, src: g.areas[0].main }
+	if (!named(g, 0, 'Madame Hydra').length) {
+		g = resolveSteps(g, steps.slice(0, 1), ctx)
+		while (g.queue.length && g.queue[0].kind !== 'mulligan' && g.phase === 'player' && g.queue[0].kind !== 'manual') g = apply(g, autoIntent(g)!)
+	}
+	const mh = named(g, 0, 'Madame Hydra')
+	assert.equal(mh.length, 1)
+	assert.equal(g.insts[mh[0]].zone, 'engaged')
+	// a second time: she's already there, nothing happens
+	const before = Object.values(g.insts).filter((x) => x.zone === 'engaged').length
+	g = resolveSteps(g, steps.slice(0, 1), ctx)
+	assert.equal(Object.values(g.insts).filter((x) => x.zone === 'engaged').length, before)
+})
+
+test('shield: the villain can\'t take damage this phase; "the players win the game"', () => {
+	let g = ready(game())
+	const v = g.areas[0].villain
+	const ctx = { area: 0, player: 0, src: v }
+	g = resolveSteps(g, [{ k: 'shield' }, { k: 'dmg', n: 3, to: 'villain' }], ctx)
+	assert.equal(g.insts[v].dmg, 0)
+	g = resolveSteps(g, [{ k: 'win' }], ctx)
+	assert.equal(g.phase, 'over')
+	assert.equal(g.winner, 'heroes')
 })
