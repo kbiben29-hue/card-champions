@@ -1,0 +1,43 @@
+name: Fetch missing card pictures
+
+# Pictures MarvelCDB doesn't have are downloaded into public/cards/ and served with the game.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['scripts/fetch-missing-images.mjs', '.github/workflows/fetch-images.yml', 'src/data/images.json']
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: fetch-images
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: node scripts/fetch-missing-images.mjs
+      - name: Commit new pictures
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add public/cards src/data/images.json
+          if git diff --cached --quiet; then
+            echo "No new pictures."
+          else
+            git commit -m "Card pictures MarvelCDB doesn't have"
+            git pull --rebase
+            git push
+            # pushes made with GITHUB_TOKEN don't start other workflows: publish the site explicitly
+            gh workflow run release.yml --ref main
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

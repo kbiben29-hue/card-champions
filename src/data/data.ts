@@ -93,8 +93,10 @@ export const packInfo = (code: string) => PACK_BY.get(code)
 export const has = (c: CardData, flag: string) => !!c.fl?.includes(flag)
 export const setCards = (set: string) => CARDS.filter((c) => c.st === set)
 
-const IMG = imagesJson as { missing: string[]; jpg: string[] }
-const NO_PIC = new Set(IMG.missing)
+const IMG = imagesJson as { missing: string[]; jpg: string[]; local?: string[] }
+/** pictures hosted with the game itself (public/cards/), for cards MarvelCDB lacks */
+const LOCAL = new Set(IMG.local ?? [])
+const NO_PIC = new Set(IMG.missing.filter((c) => !LOCAL.has(c)))
 const JPG = new Set(IMG.jpg)
 /** Does MarvelCDB have a picture of this card? (src/data/images.json, checked weekly) */
 export const hasPicture = (code: string) => {
@@ -105,6 +107,7 @@ export const hasPicture = (code: string) => {
 export function imageUrls(c: CardData): string[] {
 	const code = c.img ?? c.c
 	const b = 'https://marvelcdb.com/bundles/cards/'
+	if (LOCAL.has(code)) return [`./cards/${code}.jpg`]
 	if (NO_PIC.has(code)) return []
 	return JPG.has(code) ? [`${b}${code}.jpg`, `${b}${code}.png`] : [`${b}${code}.png`, `${b}${code}.jpg`]
 }
