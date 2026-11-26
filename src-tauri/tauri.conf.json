@@ -1,0 +1,59 @@
+{
+	"$schema": "https://schema.tauri.app/config/2",
+	"productName": "Card Champions",
+	"version": "../package.json",
+	"identifier": "io.github.kbiben29hue.cardchampions",
+	"build": {
+		"beforeDevCommand": "npm run dev -- --port 1420 --strictPort",
+		"devUrl": "http://localhost:1420",
+		"beforeBuildCommand": "npm run build",
+		"frontendDist": "../dist"
+	},
+	"app": {
+		"withGlobalTauri": true,
+		"windows": [
+			{
+				"label": "main",
+				"title": "Card Champions",
+				"width": 1440,
+				"height": 900,
+				"minWidth": 960,
+				"minHeight": 600,
+				"backgroundColor": "#10131c"
+			}
+		],
+		"security": {
+			"csp": null
+		}
+	},
+	"bundle": {
+		"active": true,
+		"targets": [
+			"app",
+			"dmg",
+			"nsis"
+		],
+		"category": "CardGame",
+		"shortDescription": "Unofficial table for Marvel Champions: The Card Game",
+		"copyright": "Fan project. Not affiliated with Fantasy Flight Games or Marvel.",
+		"icon": [
+			"icons/32x32.png",
+			"icons/128x128.png",
+			"icons/128x128@2x.png",
+			"icons/icon.icns",
+			"icons/icon.ico"
+		],
+		"macOS": {
+			"signingIdentity": "-",
+			"minimumSystemVersion": "11.0"
+		},
+		"windows": {
+			"webviewInstallMode": {
+				"type": "downloadBootstrapper"
+			},
+			"nsis": {
+				"installMode": "currentUser"
+			}
+		}
+	}
+}

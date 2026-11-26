@@ -1,0 +1,38 @@
+name: Update cards
+
+# Refreshes src/data/cards.json from the MarvelCDB card data (github.com/zzorba/marvelsdb-json-data)
+# every Monday, so new packs show up in the game without anyone touching the code.
+
+on:
+  schedule:
+    - cron: '23 9 * * 1' # Mondays
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['scripts/build-data.mjs', '.github/workflows/update-cards.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: git clone --depth 1 https://github.com/zzorba/marvelsdb-json-data /tmp/marvelsdb-json-data
+      - run: node scripts/build-data.mjs /tmp/marvelsdb-json-data
+      - name: Commit if cards changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add src/data/cards.json
+          if git diff --cached --quiet; then
+            echo "No card changes."
+          else
+            git add src/data/meta.json
+            git commit -m "Update cards (MarvelCDB data)"
+            git push
+          fi

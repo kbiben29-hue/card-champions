@@ -1,0 +1,2409 @@
+{
+ "packs": [
+  {
+   "code": "core",
+   "name": "Core Set",
+   "date": "2019-11-01",
+   "type": "core"
+  },
+  {
+   "code": "gob",
+   "name": "The Green Goblin",
+   "date": "2019-12-20",
+   "type": "scenario"
+  },
+  {
+   "code": "cap",
+   "name": "Captain America",
+   "date": "2019-12-20",
+   "type": "hero"
+  },
+  {
+   "code": "msm",
+   "name": "Ms. Marvel",
+   "date": "2019-12-20",
+   "type": "hero"
+  },
+  {
+   "code": "twc",
+   "name": "The Wrecking Crew",
+   "date": "2020-02-07",
+   "type": "scenario"
+  },
+  {
+   "code": "thor",
+   "name": "Thor",
+   "date": "2020-03-06",
+   "type": "hero"
+  },
+  {
+   "code": "bkw",
+   "name": "Black Widow",
+   "date": "2020-05-06",
+   "type": "hero"
+  },
+  {
+   "code": "drs",
+   "name": "Doctor Strange",
+   "date": "2020-06-06",
+   "type": "hero"
+  },
+  {
+   "code": "hlk",
+   "name": "Hulk",
+   "date": "2020-08-07",
+   "type": "hero"
+  },
+  {
+   "code": "ron",
+   "name": "Ronan Modular Set",
+   "date": "2020-08-02",
+   "type": "encounter"
+  },
+  {
+   "code": "trors",
+   "name": "The Rise of Red Skull",
+   "date": "2020-09-04",
+   "type": "story"
+  },
+  {
+   "code": "toafk",
+   "name": "The Once and Future Kang",
+   "date": "2020-10-02",
+   "type": "scenario"
+  },
+  {
+   "code": "ant",
+   "name": "Ant-Man",
+   "date": "2020-11-06",
+   "type": "hero"
+  },
+  {
+   "code": "wsp",
+   "name": "Wasp",
+   "date": "2021-01-22",
+   "type": "hero"
+  },
+  {
+   "code": "qsv",
+   "name": "Quicksilver",
+   "date": "2021-02-05",
+   "type": "hero"
+  },
+  {
+   "code": "scw",
+   "name": "Scarlet Witch",
+   "date": "2021-03-05",
+   "type": "hero"
+  },
+  {
+   "code": "gmw",
+   "name": "The Galaxy's Most Wanted",
+   "date": "2021-04-02",
+   "type": "story"
+  },
+  {
+   "code": "stld",
+   "name": "Star-Lord",
+   "date": "2021-05-14",
+   "type": "hero"
+  },
+  {
+   "code": "gam",
+   "name": "Gamora",
+   "date": "2021-05-14",
+   "type": "hero"
+  },
+  {
+   "code": "drax",
+   "name": "Drax",
+   "date": "2021-06-18",
+   "type": "hero"
+  },
+  {
+   "code": "vnm",
+   "name": "Venom",
+   "date": "2021-07-16",
+   "type": "hero"
+  },
+  {
+   "code": "mts",
+   "name": "The Mad Titan's Shadow",
+   "date": "2021-09-01",
+   "type": "story"
+  },
+  {
+   "code": "nebu",
+   "name": "Nebula",
+   "date": "2021-09-17",
+   "type": "hero"
+  },
+  {
+   "code": "warm",
+   "name": "War Machine",
+   "date": "2021-11-05",
+   "type": "hero"
+  },
+  {
+   "code": "hood",
+   "name": "The Hood",
+   "date": "2021-11-26",
+   "type": "scenario"
+  },
+  {
+   "code": "valk",
+   "name": "Valkyrie",
+   "date": "2021-11-26",
+   "type": "hero"
+  },
+  {
+   "code": "vision",
+   "name": "Vision",
+   "date": "2022-01-14",
+   "type": "hero"
+  },
+  {
+   "code": "sm",
+   "name": "Sinister Motives",
+   "date": "2022-04-08",
+   "type": "story"
+  },
+  {
+   "code": "nova",
+   "name": "Nova",
+   "date": "2022-05-20",
+   "type": "hero"
+  },
+  {
+   "code": "ironheart",
+   "name": "Ironheart",
+   "date": "2022-05-20",
+   "type": "hero"
+  },
+  {
+   "code": "spiderham",
+   "name": "Spider-Ham",
+   "date": "2022-07-15",
+   "type": "hero"
+  },
+  {
+   "code": "spdr",
+   "name": "SP//dr",
+   "date": "2022-07-15",
+   "type": "hero"
+  },
+  {
+   "code": "mut_gen",
+   "name": "Mutant Genesis",
+   "date": "2022-09-30",
+   "type": "story"
+  },
+  {
+   "code": "cyclops",
+   "name": "Cyclops",
+   "date": "2022-09-30",
+   "type": "hero"
+  },
+  {
+   "code": "phoenix",
+   "name": "Phoenix",
+   "date": "2022-09-30",
+   "type": "hero"
+  },
+  {
+   "code": "wolv",
+   "name": "Wolverine",
+   "date": "2022-11-11",
+   "type": "hero"
+  },
+  {
+   "code": "storm",
+   "name": "Storm",
+   "date": "2022-11-11",
+   "type": "hero"
+  },
+  {
+   "code": "gambit",
+   "name": "Gambit",
+   "date": "2023-02-24",
+   "type": "hero"
+  },
+  {
+   "code": "rogue",
+   "name": "Rogue",
+   "date": "2023-02-24",
+   "type": "hero"
+  },
+  {
+   "code": "mojo",
+   "name": "Mojo Mania",
+   "date": "2022-11-11",
+   "type": "scenario"
+  },
+  {
+   "code": "next_evol",
+   "name": "NeXt Evolution",
+   "date": "2023-08-18",
+   "type": "story"
+  },
+  {
+   "code": "psylocke",
+   "name": "Psylocke",
+   "date": "2023-09-22",
+   "type": "hero"
+  },
+  {
+   "code": "angel",
+   "name": "Angel",
+   "date": "2023-09-22",
+   "type": "hero"
+  },
+  {
+   "code": "x23",
+   "name": "X-23",
+   "date": "2023-11-17",
+   "type": "hero"
+  },
+  {
+   "code": "deadpool",
+   "name": "Deadpool",
+   "date": "2023-11-17",
+   "type": "hero"
+  },
+  {
+   "code": "aoa",
+   "name": "Age of Apocalypse",
+   "date": "2024-03-29",
+   "type": "story"
+  },
+  {
+   "code": "iceman",
+   "name": "Iceman",
+   "date": "2024-05-17",
+   "type": "hero"
+  },
+  {
+   "code": "jubilee",
+   "name": "Jubilee",
+   "date": "2024-07-19",
+   "type": "hero"
+  },
+  {
+   "code": "ncrawler",
+   "name": "Nightcrawler",
+   "date": "2024-09-20",
+   "type": "hero"
+  },
+  {
+   "code": "magneto",
+   "name": "Magneto",
+   "date": "2024-11-15",
+   "type": "hero"
+  },
+  {
+   "code": "aos",
+   "name": "Agents of S.H.I.E.L.D.",
+   "date": "2025-02-20",
+   "type": "story"
+  },
+  {
+   "code": "bp",
+   "name": "Black Panther",
+   "date": "2025-04-18",
+   "type": "hero"
+  },
+  {
+   "code": "silk",
+   "name": "Silk",
+   "date": "2025-04-18",
+   "type": "hero"
+  },
+  {
+   "code": "falcon",
+   "name": "Falcon",
+   "date": "2025-06-20",
+   "type": "hero"
+  },
+  {
+   "code": "winter",
+   "name": "Winter Soldier",
+   "date": "2025-06-20",
+   "type": "hero"
+  },
+  {
+   "code": "tt",
+   "name": "Trickster Takeover",
+   "date": "2025-08-15",
+   "type": "scenario"
+  },
+  {
+   "code": "cw",
+   "name": "Civil War",
+   "date": "2025-10-17",
+   "type": "story"
+  },
+  {
+   "code": "synthezoid",
+   "name": "Synthezoid Smackdown",
+   "date": "2025-12-05",
+   "type": "scenario"
+  },
+  {
+   "code": "wonder_man",
+   "name": "Wonder Man",
+   "date": "2026-02-20",
+   "type": "hero"
+  },
+  {
+   "code": "hercules",
+   "name": "Hercules",
+   "date": "2026-02-20",
+   "type": "hero"
+  },
+  {
+   "code": "fne",
+   "name": "Fear No Evil",
+   "date": "2026-07-24",
+   "type": "story"
+  },
+  {
+   "code": "jj",
+   "name": "Jessica Jones",
+   "date": "2026-08-21",
+   "type": "hero"
+  },
+  {
+   "code": "luke_cage",
+   "name": "Luke Cage",
+   "date": "2026-08-21",
+   "type": "hero"
+  },
+  {
+   "code": "elektra",
+   "name": "Elektra",
+   "date": "2026-11-13",
+   "type": "hero"
+  },
+  {
+   "code": "iron_fist",
+   "name": "Iron Fist",
+   "date": "2026-11-13",
+   "type": "hero"
+  }
+ ],
+ "sets": [
+  {
+   "code": "rhino",
+   "name": "Rhino",
+   "type": "villain"
+  },
+  {
+   "code": "klaw",
+   "name": "Klaw",
+   "type": "villain"
+  },
+  {
+   "code": "ultron",
+   "name": "Ultron",
+   "type": "villain"
+  },
+  {
+   "code": "she_hulk_nemesis",
+   "name": "She-Hulk Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "iron_man_nemesis",
+   "name": "Iron Man Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "spider_man_nemesis",
+   "name": "Spider-Man Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "black_panther_nemesis",
+   "name": "Black Panther Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "captain_marvel_nemesis",
+   "name": "Captain Marvel Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "she_hulk",
+   "name": "She-Hulk",
+   "type": "hero"
+  },
+  {
+   "code": "iron_man",
+   "name": "Iron Man",
+   "type": "hero"
+  },
+  {
+   "code": "spider_man",
+   "name": "Spider-Man",
+   "type": "hero"
+  },
+  {
+   "code": "black_panther",
+   "name": "Black Panther",
+   "type": "hero"
+  },
+  {
+   "code": "captain_marvel",
+   "name": "Captain Marvel",
+   "type": "hero"
+  },
+  {
+   "code": "bomb_scare",
+   "name": "Bomb Scare",
+   "type": "modular"
+  },
+  {
+   "code": "standard",
+   "name": "Standard",
+   "type": "standard"
+  },
+  {
+   "code": "expert",
+   "name": "Expert",
+   "type": "expert"
+  },
+  {
+   "code": "masters_of_evil",
+   "name": "Masters of Evil",
+   "type": "modular"
+  },
+  {
+   "code": "under_attack",
+   "name": "Under Attack",
+   "type": "modular"
+  },
+  {
+   "code": "legions_of_hydra",
+   "name": "Legions of Hydra",
+   "type": "modular"
+  },
+  {
+   "code": "the_doomsday_chair",
+   "name": "The Doomsday Chair",
+   "type": "modular"
+  },
+  {
+   "code": "risky_business",
+   "name": "Risky Business",
+   "type": "villain"
+  },
+  {
+   "code": "mutagen_formula",
+   "name": "Mutagen Formula",
+   "type": "villain"
+  },
+  {
+   "code": "goblin_gimmicks",
+   "name": "Goblin Gimmicks",
+   "type": "modular"
+  },
+  {
+   "code": "running_interference",
+   "name": "Running Interference",
+   "type": "modular"
+  },
+  {
+   "code": "power_drain",
+   "name": "Power Drain",
+   "type": "modular"
+  },
+  {
+   "code": "a_mess_of_things",
+   "name": "A Mess of Things",
+   "type": "modular"
+  },
+  {
+   "code": "captain_america",
+   "name": "Captain America",
+   "type": "hero"
+  },
+  {
+   "code": "captain_america_nemesis",
+   "name": "Captain America Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "ms_marvel",
+   "name": "Ms. Marvel",
+   "type": "hero"
+  },
+  {
+   "code": "ms_marvel_nemesis",
+   "name": "Ms. Marvel Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "thor",
+   "name": "Thor",
+   "type": "hero"
+  },
+  {
+   "code": "thor_nemesis",
+   "name": "Thor Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "wrecking_crew",
+   "name": "Wrecking Crew",
+   "type": "villain"
+  },
+  {
+   "code": "piledriver",
+   "name": "Piledriver",
+   "type": "villain"
+  },
+  {
+   "code": "wrecker",
+   "name": "Wrecker",
+   "type": "villain"
+  },
+  {
+   "code": "thunderball",
+   "name": "Thunderball",
+   "type": "villain"
+  },
+  {
+   "code": "bulldozer",
+   "name": "Bulldozer",
+   "type": "villain"
+  },
+  {
+   "code": "black_widow",
+   "name": "Black Widow",
+   "type": "hero"
+  },
+  {
+   "code": "black_widow_nemesis",
+   "name": "Black Widow Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "doctor_strange",
+   "name": "Doctor Strange",
+   "type": "hero"
+  },
+  {
+   "code": "doctor_strange_invocation_deck",
+   "name": "Invocation",
+   "type": "hero_special",
+   "parent": "doctor_strange"
+  },
+  {
+   "code": "doctor_strange_nemesis",
+   "name": "Doctor Strange Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "hulk",
+   "name": "Hulk",
+   "type": "hero"
+  },
+  {
+   "code": "hulk_nemesis",
+   "name": "Hulk Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "kree_fanatic",
+   "name": "Kree Fanatic",
+   "type": "modular"
+  },
+  {
+   "code": "hawkeye",
+   "name": "Hawkeye",
+   "type": "hero"
+  },
+  {
+   "code": "hawkeye_nemesis",
+   "name": "Hawkeye Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "spider_woman",
+   "name": "Spider-Woman",
+   "type": "hero"
+  },
+  {
+   "code": "spider_woman_nemesis",
+   "name": "Spider-Woman Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "crossbones",
+   "name": "Crossbones",
+   "type": "villain"
+  },
+  {
+   "code": "exper_weapon",
+   "name": "Experimental Weapons",
+   "type": "modular"
+  },
+  {
+   "code": "absorbing_man",
+   "name": "Absorbing Man",
+   "type": "villain"
+  },
+  {
+   "code": "taskmaster",
+   "name": "Taskmaster",
+   "type": "villain"
+  },
+  {
+   "code": "zola",
+   "name": "Zola",
+   "type": "villain"
+  },
+  {
+   "code": "red_skull",
+   "name": "Red Skull",
+   "type": "villain"
+  },
+  {
+   "code": "hydra_assault",
+   "name": "Hydra Assault",
+   "type": "modular"
+  },
+  {
+   "code": "weap_master",
+   "name": "Weapon Master",
+   "type": "modular"
+  },
+  {
+   "code": "hydra_patrol",
+   "name": "Hydra Patrol",
+   "type": "modular"
+  },
+  {
+   "code": "hydra_camp",
+   "name": "Hydra Campaign",
+   "type": "modular"
+  },
+  {
+   "code": "expcamp",
+   "name": "Expert Campaign",
+   "type": "modular"
+  },
+  {
+   "code": "kang",
+   "name": "Kang",
+   "type": "villain"
+  },
+  {
+   "code": "temporal",
+   "name": "Temporal",
+   "type": "modular"
+  },
+  {
+   "code": "exp_kang",
+   "name": "Expert Kang",
+   "type": "modular"
+  },
+  {
+   "code": "anachronauts",
+   "name": "Anachronauts",
+   "type": "modular"
+  },
+  {
+   "code": "mot",
+   "name": "Master of Time",
+   "type": "modular"
+  },
+  {
+   "code": "ant",
+   "name": "Ant-Man",
+   "type": "hero"
+  },
+  {
+   "code": "ant_nemesis",
+   "name": "Ant-Man Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "wsp",
+   "name": "Wasp",
+   "type": "hero"
+  },
+  {
+   "code": "wsp_nemesis",
+   "name": "Wasp Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "qsv",
+   "name": "Quicksilver",
+   "type": "hero"
+  },
+  {
+   "code": "qsv_nemesis",
+   "name": "Quicksilver Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "scw",
+   "name": "Scarlet Witch",
+   "type": "hero"
+  },
+  {
+   "code": "scw_nemesis",
+   "name": "Scarlet Witch Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "groot",
+   "name": "Groot",
+   "type": "hero"
+  },
+  {
+   "code": "groot_nemesis",
+   "name": "Groot Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "rocket",
+   "name": "Rocket Raccoon",
+   "type": "hero"
+  },
+  {
+   "code": "rocket_nemesis",
+   "name": "Rocket Raccoon Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "stld",
+   "name": "Star-Lord",
+   "type": "hero"
+  },
+  {
+   "code": "stld_nemesis",
+   "name": "Star-Lord Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "gam",
+   "name": "Gamora",
+   "type": "hero"
+  },
+  {
+   "code": "gam_nemesis",
+   "name": "Gamora Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "drax",
+   "name": "Drax",
+   "type": "hero"
+  },
+  {
+   "code": "drax_nemesis",
+   "name": "Drax Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "vnm",
+   "name": "Venom",
+   "type": "hero"
+  },
+  {
+   "code": "vnm_nemesis",
+   "name": "Venom Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "the_market",
+   "name": "The Market",
+   "type": "modular"
+  },
+  {
+   "code": "challenge",
+   "name": "Challenge",
+   "type": "modular"
+  },
+  {
+   "code": "badoon_headhunter",
+   "name": "Badoon Headhunter",
+   "type": "modular"
+  },
+  {
+   "code": "brotherhood_of_badoon",
+   "name": "Brotherhood Of Badoon",
+   "type": "villain"
+  },
+  {
+   "code": "infiltrate_the_museum",
+   "name": "Infiltrate the Museum",
+   "type": "villain"
+  },
+  {
+   "code": "escape_the_museum",
+   "name": "Escape the Museum",
+   "type": "villain"
+  },
+  {
+   "code": "nebula",
+   "name": "Nebula",
+   "type": "villain"
+  },
+  {
+   "code": "ronan",
+   "name": "Ronan the Accuser",
+   "type": "villain"
+  },
+  {
+   "code": "band_of_badoon",
+   "name": "Band of Badoon",
+   "type": "modular"
+  },
+  {
+   "code": "galactic_artifacts",
+   "name": "Galactic Artifacts",
+   "type": "modular"
+  },
+  {
+   "code": "kree_militant",
+   "name": "Kree Militants",
+   "type": "modular"
+  },
+  {
+   "code": "menagerie_medley",
+   "name": "Menagerie Medley",
+   "type": "modular"
+  },
+  {
+   "code": "space_pirates",
+   "name": "Space Pirates",
+   "type": "modular"
+  },
+  {
+   "code": "ship_command",
+   "name": "Ship Command",
+   "type": "modular"
+  },
+  {
+   "code": "power_stone",
+   "name": "Power Stone",
+   "type": "modular"
+  },
+  {
+   "code": "spectrum",
+   "name": "Spectrum",
+   "type": "hero"
+  },
+  {
+   "code": "spectrum_nemesis",
+   "name": "Spectrum Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "warlock",
+   "name": "Adam Warlock",
+   "type": "hero"
+  },
+  {
+   "code": "warlock_nemesis",
+   "name": "Adam Warlock Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "ebony_maw",
+   "name": "Ebony Maw",
+   "type": "villain"
+  },
+  {
+   "code": "tower_defense",
+   "name": "Tower Defense",
+   "type": "villain"
+  },
+  {
+   "code": "thanos",
+   "name": "Thanos",
+   "type": "villain"
+  },
+  {
+   "code": "hela",
+   "name": "Hela",
+   "type": "villain"
+  },
+  {
+   "code": "loki",
+   "name": "Loki",
+   "type": "villain"
+  },
+  {
+   "code": "black_order",
+   "name": "Black Order",
+   "type": "modular"
+  },
+  {
+   "code": "armies_of_titan",
+   "name": "Armies of Titan",
+   "type": "modular"
+  },
+  {
+   "code": "children_of_thanos",
+   "name": "Children of Thanos",
+   "type": "modular"
+  },
+  {
+   "code": "infinity_gauntlet",
+   "name": "Infinity Gauntlet",
+   "type": "modular"
+  },
+  {
+   "code": "legions_of_hel",
+   "name": "Legions of Hel",
+   "type": "modular"
+  },
+  {
+   "code": "frost_giants",
+   "name": "Frost Giants",
+   "type": "modular"
+  },
+  {
+   "code": "enchantress",
+   "name": "Enchantress",
+   "type": "modular"
+  },
+  {
+   "code": "mts_campaign",
+   "name": "The Mad Titan's Shadow Campaign",
+   "type": "modular"
+  },
+  {
+   "code": "nebu",
+   "name": "Nebula",
+   "type": "hero"
+  },
+  {
+   "code": "nebu_nemesis",
+   "name": "Nebula Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "warm",
+   "name": "War Machine",
+   "type": "hero"
+  },
+  {
+   "code": "warm_nemesis",
+   "name": "War Machine Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "the_hood",
+   "name": "The Hood",
+   "type": "villain"
+  },
+  {
+   "code": "beasty_boys",
+   "name": "Beasty Boys",
+   "type": "modular"
+  },
+  {
+   "code": "brothers_grimm",
+   "name": "Brothers Grimm",
+   "type": "modular"
+  },
+  {
+   "code": "crossfire_crew",
+   "name": "Crossfire's Crew",
+   "type": "modular"
+  },
+  {
+   "code": "mister_hyde",
+   "name": "Mister Hyde",
+   "type": "modular"
+  },
+  {
+   "code": "ransacked_armory",
+   "name": "Ransacked Armory",
+   "type": "modular"
+  },
+  {
+   "code": "state_of_emergency",
+   "name": "State of Emergency",
+   "type": "modular"
+  },
+  {
+   "code": "streets_of_mayhem",
+   "name": "Streets of Mayhem",
+   "type": "modular"
+  },
+  {
+   "code": "sinister_syndicate",
+   "name": "Sinister Syndicate",
+   "type": "modular"
+  },
+  {
+   "code": "wrecking_crew_modular",
+   "name": "Wrecking Crew",
+   "type": "modular"
+  },
+  {
+   "code": "standard_ii",
+   "name": "Standard II",
+   "type": "standard"
+  },
+  {
+   "code": "expert_ii",
+   "name": "Expert II",
+   "type": "expert"
+  },
+  {
+   "code": "valk",
+   "name": "Valkyrie",
+   "type": "hero"
+  },
+  {
+   "code": "valk_nemesis",
+   "name": "Valkyrie Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "vision",
+   "name": "Vision",
+   "type": "hero"
+  },
+  {
+   "code": "vision_nemesis",
+   "name": "Vision Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "ghost_spider",
+   "name": "Ghost-Spider",
+   "type": "hero"
+  },
+  {
+   "code": "ghost_spider_nemesis",
+   "name": "Ghost-Spider Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "spider_man_morales",
+   "name": "Spider-Man - Miles Morales",
+   "type": "hero"
+  },
+  {
+   "code": "spider_man_morales_nemesis",
+   "name": "Spider-Man - Morales Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "sandman",
+   "name": "Sandman",
+   "type": "villain"
+  },
+  {
+   "code": "venom",
+   "name": "Venom",
+   "type": "villain"
+  },
+  {
+   "code": "mysterio",
+   "name": "Mysterio",
+   "type": "villain"
+  },
+  {
+   "code": "sinister_six",
+   "name": "The Sinister Six",
+   "type": "villain"
+  },
+  {
+   "code": "venom_goblin",
+   "name": "Venom Goblin",
+   "type": "villain"
+  },
+  {
+   "code": "city_in_chaos",
+   "name": "City in Chaos",
+   "type": "modular"
+  },
+  {
+   "code": "down_to_earth",
+   "name": "Down to Earth",
+   "type": "modular"
+  },
+  {
+   "code": "goblin_gear",
+   "name": "Goblin Gear",
+   "type": "modular"
+  },
+  {
+   "code": "guerrilla_tactics",
+   "name": "Guerrilla Tactics",
+   "type": "modular"
+  },
+  {
+   "code": "osborn_tech",
+   "name": "Osborn Tech",
+   "type": "modular"
+  },
+  {
+   "code": "personal_nightmare",
+   "name": "Personal Nightmare",
+   "type": "modular"
+  },
+  {
+   "code": "sinister_assault",
+   "name": "Sinister Assault",
+   "type": "modular"
+  },
+  {
+   "code": "symbiotic_strength",
+   "name": "Symbiotic Strength",
+   "type": "modular"
+  },
+  {
+   "code": "whispers_of_paranoia",
+   "name": "Whispers of Paranoia",
+   "type": "modular"
+  },
+  {
+   "code": "bad_publicity",
+   "name": "Bad Publicity",
+   "type": "modular"
+  },
+  {
+   "code": "community_service",
+   "name": "Community Service",
+   "type": "modular"
+  },
+  {
+   "code": "snitches_get_stitches",
+   "name": "Snitches get Stitches",
+   "type": "modular"
+  },
+  {
+   "code": "shield_tech",
+   "name": "Shield Tech",
+   "type": "modular"
+  },
+  {
+   "code": "nova",
+   "name": "Nova",
+   "type": "hero"
+  },
+  {
+   "code": "nova_nemesis",
+   "name": "Nova Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "armadillo",
+   "name": "Armadillo",
+   "type": "modular"
+  },
+  {
+   "code": "ironheart",
+   "name": "Ironheart",
+   "type": "hero"
+  },
+  {
+   "code": "ironheart_nemesis",
+   "name": "Ironheart Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "zzzax",
+   "name": "Zzzax",
+   "type": "modular"
+  },
+  {
+   "code": "spiderham",
+   "name": "Spider-Ham",
+   "type": "hero"
+  },
+  {
+   "code": "spiderham_nemesis",
+   "name": "Spider-Ham Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "inheritors",
+   "name": "The Inheritors",
+   "type": "modular"
+  },
+  {
+   "code": "spdr",
+   "name": "SP//dr",
+   "type": "hero"
+  },
+  {
+   "code": "spdr_nemesis",
+   "name": "SP//dr Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "ironspider_sinister",
+   "name": "Iron Spider's Sinister Six",
+   "type": "modular"
+  },
+  {
+   "code": "colossus",
+   "name": "Colossus",
+   "type": "hero"
+  },
+  {
+   "code": "colossus_nemesis",
+   "name": "Colossus Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "shadowcat",
+   "name": "Shadowcat",
+   "type": "hero"
+  },
+  {
+   "code": "shadowcat_nemesis",
+   "name": "Shadowcat Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "sabretooth",
+   "name": "Sabretooth",
+   "type": "villain"
+  },
+  {
+   "code": "project_wideawake",
+   "name": "Project Wideawake",
+   "type": "villain"
+  },
+  {
+   "code": "master_mold",
+   "name": "Master Mold",
+   "type": "villain"
+  },
+  {
+   "code": "mansion_attack",
+   "name": "Mansion Attack",
+   "type": "villain"
+  },
+  {
+   "code": "magneto_villain",
+   "name": "Magneto",
+   "type": "villain"
+  },
+  {
+   "code": "brotherhood",
+   "name": "Brotherhood",
+   "type": "modular"
+  },
+  {
+   "code": "mystique",
+   "name": "Mystique",
+   "type": "modular"
+  },
+  {
+   "code": "zero_tolerance",
+   "name": "Zero Tolerance",
+   "type": "modular"
+  },
+  {
+   "code": "sentinels",
+   "name": "Sentinels",
+   "type": "modular"
+  },
+  {
+   "code": "acolytes",
+   "name": "Acolytes",
+   "type": "modular"
+  },
+  {
+   "code": "future_past",
+   "name": "Future Past",
+   "type": "modular"
+  },
+  {
+   "code": "mut_gen_campaign",
+   "name": "Mutant Genesis Campaign",
+   "type": "modular"
+  },
+  {
+   "code": "brawler",
+   "name": "Brawler",
+   "type": "modular"
+  },
+  {
+   "code": "commander",
+   "name": "Commander",
+   "type": "modular"
+  },
+  {
+   "code": "defender",
+   "name": "Defender",
+   "type": "modular"
+  },
+  {
+   "code": "peacekeeper",
+   "name": "Peacekeeper",
+   "type": "modular"
+  },
+  {
+   "code": "cyclops",
+   "name": "Cyclops",
+   "type": "hero"
+  },
+  {
+   "code": "cyclops_nemesis",
+   "name": "Cyclops Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "phoenix",
+   "name": "Phoenix",
+   "type": "hero"
+  },
+  {
+   "code": "phoenix_nemesis",
+   "name": "Phoenix Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "wolverine",
+   "name": "Wolverine",
+   "type": "hero"
+  },
+  {
+   "code": "wolverine_nemesis",
+   "name": "Wolverine Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "deathstrike",
+   "name": "Deathstrike",
+   "type": "modular"
+  },
+  {
+   "code": "storm",
+   "name": "Storm",
+   "type": "hero"
+  },
+  {
+   "code": "storm_weather_deck",
+   "name": "Weather Deck",
+   "type": "hero_special",
+   "parent": "storm"
+  },
+  {
+   "code": "storm_nemesis",
+   "name": "Storm Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "shadow_king",
+   "name": "Shadow King",
+   "type": "modular"
+  },
+  {
+   "code": "magog",
+   "name": "Magog",
+   "type": "villain"
+  },
+  {
+   "code": "spiral",
+   "name": "Spiral",
+   "type": "villain"
+  },
+  {
+   "code": "mojo",
+   "name": "Mojo",
+   "type": "villain"
+  },
+  {
+   "code": "crime",
+   "name": "Crime",
+   "type": "modular"
+  },
+  {
+   "code": "fantasy",
+   "name": "Fantasy",
+   "type": "modular"
+  },
+  {
+   "code": "horror",
+   "name": "Horror",
+   "type": "modular"
+  },
+  {
+   "code": "sci-fi",
+   "name": "Sci-Fi",
+   "type": "modular"
+  },
+  {
+   "code": "sitcom",
+   "name": "Sitcom",
+   "type": "modular"
+  },
+  {
+   "code": "western",
+   "name": "Western",
+   "type": "modular"
+  },
+  {
+   "code": "longshot",
+   "name": "Longshot",
+   "type": "modular"
+  },
+  {
+   "code": "gambit",
+   "name": "Gambit",
+   "type": "hero"
+  },
+  {
+   "code": "gambit_nemesis",
+   "name": "Gambit Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "exodus",
+   "name": "Exodus",
+   "type": "modular"
+  },
+  {
+   "code": "rogue",
+   "name": "Rogue",
+   "type": "hero"
+  },
+  {
+   "code": "rogue_nemesis",
+   "name": "Rogue Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "reavers",
+   "name": "Reavers",
+   "type": "modular"
+  },
+  {
+   "code": "cable",
+   "name": "Cable",
+   "type": "hero"
+  },
+  {
+   "code": "cable_nemesis",
+   "name": "Cable Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "domino",
+   "name": "Domino",
+   "type": "hero"
+  },
+  {
+   "code": "domino_nemesis",
+   "name": "Domino Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "marauders",
+   "name": "Marauders",
+   "type": "villain"
+  },
+  {
+   "code": "morlock_siege",
+   "name": "Morlock Siege",
+   "type": "villain"
+  },
+  {
+   "code": "military_grade",
+   "name": "Military Grade",
+   "type": "modular"
+  },
+  {
+   "code": "mutant_slayers",
+   "name": "Mutant Slayers",
+   "type": "modular"
+  },
+  {
+   "code": "on_the_run",
+   "name": "On the Run",
+   "type": "villain"
+  },
+  {
+   "code": "nasty_boys",
+   "name": "Nasty Boys",
+   "type": "modular"
+  },
+  {
+   "code": "juggernaut",
+   "name": "Juggernaut",
+   "type": "villain"
+  },
+  {
+   "code": "hope_summers",
+   "name": "Hope Summers",
+   "type": "modular"
+  },
+  {
+   "code": "black_tom_cassidy",
+   "name": "Black Tom Cassidy",
+   "type": "modular"
+  },
+  {
+   "code": "mister_sinister",
+   "name": "Mister Sinister",
+   "type": "villain"
+  },
+  {
+   "code": "flight",
+   "name": "Flight",
+   "type": "modular"
+  },
+  {
+   "code": "super_strength",
+   "name": "Super Strength",
+   "type": "modular"
+  },
+  {
+   "code": "telepathy",
+   "name": "Telepathy",
+   "type": "modular"
+  },
+  {
+   "code": "stryfe",
+   "name": "Stryfe",
+   "type": "villain"
+  },
+  {
+   "code": "extreme_measures",
+   "name": "Extreme Measures",
+   "type": "modular"
+  },
+  {
+   "code": "mutant_insurrection",
+   "name": "Mutant Insurrection",
+   "type": "modular"
+  },
+  {
+   "code": "next_evol_campaign",
+   "name": "Next Evolution Campaign",
+   "type": "modular"
+  },
+  {
+   "code": "psylocke",
+   "name": "Psylocke",
+   "type": "hero"
+  },
+  {
+   "code": "psylocke_nemesis",
+   "name": "Psylocke Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "angel",
+   "name": "Angel",
+   "type": "hero"
+  },
+  {
+   "code": "angel_nemesis",
+   "name": "Angel Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "x23",
+   "name": "X-23",
+   "type": "hero"
+  },
+  {
+   "code": "x23_nemesis",
+   "name": "X-23 Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "deadpool",
+   "name": "Deadpool",
+   "type": "hero"
+  },
+  {
+   "code": "deadpool_nemesis",
+   "name": "Deadpool Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "dreadpool",
+   "name": "Dreadpool",
+   "type": "modular"
+  },
+  {
+   "code": "bishop",
+   "name": "Bishop",
+   "type": "hero"
+  },
+  {
+   "code": "bishop_nemesis",
+   "name": "Bishop Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "magik",
+   "name": "Magik",
+   "type": "hero"
+  },
+  {
+   "code": "magik_nemesis",
+   "name": "Magik Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "unus",
+   "name": "Unus",
+   "type": "villain"
+  },
+  {
+   "code": "infinites",
+   "name": "Infinites",
+   "type": "modular"
+  },
+  {
+   "code": "dystopian_nightmare",
+   "name": "Dystopian Nightmare",
+   "type": "modular"
+  },
+  {
+   "code": "standard_iii",
+   "name": "Standard III",
+   "type": "standard"
+  },
+  {
+   "code": "four_horsemen",
+   "name": "Four Horsemen",
+   "type": "villain"
+  },
+  {
+   "code": "hounds",
+   "name": "Hounds",
+   "type": "modular"
+  },
+  {
+   "code": "apocalypse",
+   "name": "Apocalypse",
+   "type": "villain"
+  },
+  {
+   "code": "dark_riders",
+   "name": "Dark Riders",
+   "type": "modular"
+  },
+  {
+   "code": "dark_beast",
+   "name": "Dark Beast",
+   "type": "villain"
+  },
+  {
+   "code": "savage_land",
+   "name": "Savage Land",
+   "type": "modular"
+  },
+  {
+   "code": "genosha",
+   "name": "Genosha",
+   "type": "modular"
+  },
+  {
+   "code": "blue_moon",
+   "name": "Blue Moon",
+   "type": "modular"
+  },
+  {
+   "code": "en_sabah_nur",
+   "name": "En Sabah Nur",
+   "type": "villain"
+  },
+  {
+   "code": "celestial_tech",
+   "name": "Celestial Tech",
+   "type": "modular"
+  },
+  {
+   "code": "clan_akkaba",
+   "name": "Clan Akkaba",
+   "type": "modular"
+  },
+  {
+   "code": "age_of_apocalypse",
+   "name": "Age of Apocalypse",
+   "type": "modular"
+  },
+  {
+   "code": "aoa_mission",
+   "name": "Mission",
+   "type": "modular"
+  },
+  {
+   "code": "aoa_basic_campaign",
+   "name": "Campaign",
+   "type": "modular"
+  },
+  {
+   "code": "aoa_campaign",
+   "name": "Campaign",
+   "type": "modular"
+  },
+  {
+   "code": "overseer",
+   "name": "Overseer",
+   "type": "modular"
+  },
+  {
+   "code": "prelates",
+   "name": "Prelates",
+   "type": "modular"
+  },
+  {
+   "code": "iceman",
+   "name": "Iceman",
+   "type": "hero"
+  },
+  {
+   "code": "iceman_frostbite",
+   "name": "Frostbite",
+   "type": "hero_special",
+   "parent": "iceman"
+  },
+  {
+   "code": "iceman_nemesis",
+   "name": "Iceman Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "sauron",
+   "name": "Sauron",
+   "type": "modular"
+  },
+  {
+   "code": "jubilee",
+   "name": "Jubilee",
+   "type": "hero"
+  },
+  {
+   "code": "jubilee_nemesis",
+   "name": "Jubilee Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "arcade",
+   "name": "Arcade",
+   "type": "modular"
+  },
+  {
+   "code": "nightcrawler",
+   "name": "Nightcrawler",
+   "type": "hero"
+  },
+  {
+   "code": "nightcrawler_nemesis",
+   "name": "Nightcrawler Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "crazy_gang",
+   "name": "Crazy Gang",
+   "type": "modular"
+  },
+  {
+   "code": "magneto",
+   "name": "Magneto",
+   "type": "hero"
+  },
+  {
+   "code": "magneto_nemesis",
+   "name": "Magneto Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "hellfire",
+   "name": "Hellfire",
+   "type": "modular"
+  },
+  {
+   "code": "maria_hill",
+   "name": "Maria Hill",
+   "type": "hero"
+  },
+  {
+   "code": "maria_hill_nemesis",
+   "name": "Maria Hill Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "nick_fury",
+   "name": "Nick Fury",
+   "type": "hero"
+  },
+  {
+   "code": "nick_fury_nemesis",
+   "name": "Nick Fury Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "black_widow_villain",
+   "name": "Black Widow",
+   "type": "villain"
+  },
+  {
+   "code": "a.i.m._abduction",
+   "name": "A.I.M. Abduction",
+   "type": "modular"
+  },
+  {
+   "code": "a.i.m._science",
+   "name": "A.I.M. Science",
+   "type": "modular"
+  },
+  {
+   "code": "batroc",
+   "name": "Batroc",
+   "type": "villain"
+  },
+  {
+   "code": "batrocs_brigade",
+   "name": "Batroc's Brigade",
+   "type": "modular"
+  },
+  {
+   "code": "m.o.d.o.k.",
+   "name": "M.O.D.O.K",
+   "type": "villain"
+  },
+  {
+   "code": "scientist_supreme",
+   "name": "Scientist Supreme",
+   "type": "modular"
+  },
+  {
+   "code": "thunderbolts",
+   "name": "Thunderbolts",
+   "type": "villain"
+  },
+  {
+   "code": "gravitational_pull",
+   "name": "Gravitational Pull",
+   "type": "modular"
+  },
+  {
+   "code": "hard_sound",
+   "name": "Hard Sound",
+   "type": "modular"
+  },
+  {
+   "code": "pale_little_spider",
+   "name": "Pale Little Spider",
+   "type": "modular"
+  },
+  {
+   "code": "power_of_the_atom",
+   "name": "Power of the Atom",
+   "type": "modular"
+  },
+  {
+   "code": "supersonic",
+   "name": "Supersonic",
+   "type": "modular"
+  },
+  {
+   "code": "the_leaper",
+   "name": "The Leaper",
+   "type": "modular"
+  },
+  {
+   "code": "baron_zemo",
+   "name": "Baron Zemo",
+   "type": "villain"
+  },
+  {
+   "code": "s.h.i.e.l.d.",
+   "name": "S.H.I.E.L.D.",
+   "type": "modular"
+  },
+  {
+   "code": "s.h.i.e.l.d._executive_board",
+   "name": "S.H.I.E.L.D. Executive Board",
+   "type": "modular"
+  },
+  {
+   "code": "executive_board_evidence",
+   "name": "Executive Board Evidence",
+   "type": "evidence"
+  },
+  {
+   "code": "silk",
+   "name": "Silk",
+   "type": "hero"
+  },
+  {
+   "code": "silk_nemesis",
+   "name": "Silk Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "growing_strong",
+   "name": "Growing Strong",
+   "type": "modular"
+  },
+  {
+   "code": "black_panther_shuri",
+   "name": "Black Panther (Shuri)",
+   "type": "hero"
+  },
+  {
+   "code": "black_panther_shuri_nemesis",
+   "name": "Black Panther (Shuri) Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "extreme_risk",
+   "name": "Extreme Risk",
+   "type": "modular"
+  },
+  {
+   "code": "falcon",
+   "name": "Falcon",
+   "type": "hero"
+  },
+  {
+   "code": "falcon_nemesis",
+   "name": "Falcon Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "techno",
+   "name": "Techno",
+   "type": "modular"
+  },
+  {
+   "code": "winter_soldier",
+   "name": "Winter Soldier",
+   "type": "hero"
+  },
+  {
+   "code": "winter_soldier_nemesis",
+   "name": "Winter Soldier Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "whiteout",
+   "name": "Whiteout",
+   "type": "modular"
+  },
+  {
+   "code": "enchantress_villain",
+   "name": "Enchantress",
+   "type": "villain"
+  },
+  {
+   "code": "god_of_lies",
+   "name": "God of Lies",
+   "type": "villain"
+  },
+  {
+   "code": "trickster_magic",
+   "name": "Trickster Magic",
+   "type": "modular"
+  },
+  {
+   "code": "tigra",
+   "name": "Tigra",
+   "type": "hero"
+  },
+  {
+   "code": "tigra_nemesis",
+   "name": "Tigra Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "hulkling",
+   "name": "Hulkling",
+   "type": "hero"
+  },
+  {
+   "code": "hulkling_nemesis",
+   "name": "Hulkling Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "iron_man_leader",
+   "name": "Iron Man",
+   "type": "leader"
+  },
+  {
+   "code": "registration",
+   "name": "Registration",
+   "type": "main_scheme"
+  },
+  {
+   "code": "mighty_avengers",
+   "name": "Mighty Avengers",
+   "type": "modular"
+  },
+  {
+   "code": "the_initiative",
+   "name": "The Initiative",
+   "type": "modular"
+  },
+  {
+   "code": "maria_hill_modular",
+   "name": "Maria Hill",
+   "type": "modular"
+  },
+  {
+   "code": "dangerous_recruits",
+   "name": "Dangerous Recruits",
+   "type": "modular"
+  },
+  {
+   "code": "captain_marvel_leader",
+   "name": "Captain Marvel",
+   "type": "leader"
+  },
+  {
+   "code": "resistance",
+   "name": "Resistance",
+   "type": "main_scheme"
+  },
+  {
+   "code": "cape_killer",
+   "name": "Cape-Killer",
+   "type": "modular"
+  },
+  {
+   "code": "martial_law",
+   "name": "Martial Law",
+   "type": "modular"
+  },
+  {
+   "code": "heroes_for_hire",
+   "name": "Heroes for Hire",
+   "type": "modular"
+  },
+  {
+   "code": "paladin",
+   "name": "Paladin",
+   "type": "modular"
+  },
+  {
+   "code": "standard_pvp",
+   "name": "Standard PVP",
+   "type": "standard"
+  },
+  {
+   "code": "captain_america_leader",
+   "name": "Captain America",
+   "type": "leader"
+  },
+  {
+   "code": "new_avengers",
+   "name": "New Avengers",
+   "type": "modular"
+  },
+  {
+   "code": "secret_avengers",
+   "name": "Secret Avengers",
+   "type": "modular"
+  },
+  {
+   "code": "namor_modular",
+   "name": "Namor",
+   "type": "modular"
+  },
+  {
+   "code": "atlanteans",
+   "name": "Atlanteans",
+   "type": "modular"
+  },
+  {
+   "code": "spider_woman_leader",
+   "name": "Spider Woman",
+   "type": "leader"
+  },
+  {
+   "code": "spider_man_modular",
+   "name": "Spider-Man",
+   "type": "modular"
+  },
+  {
+   "code": "defenders",
+   "name": "Defenders",
+   "type": "modular"
+  },
+  {
+   "code": "hells_kitchen",
+   "name": "Hell's Kitchen",
+   "type": "modular"
+  },
+  {
+   "code": "cloak_and_dagger_modular",
+   "name": "Cloak & Dagger",
+   "type": "modular"
+  },
+  {
+   "code": "she_hulk_leader",
+   "name": "She-Hulk",
+   "type": "leader"
+  },
+  {
+   "code": "synthezoid_registration",
+   "name": "Registration",
+   "type": "main_scheme"
+  },
+  {
+   "code": "shield_ops",
+   "name": "S.H.I.E.L.D. Ops",
+   "type": "modular"
+  },
+  {
+   "code": "thunderbolts_modular",
+   "name": "Thunderbolts",
+   "type": "modular"
+  },
+  {
+   "code": "taskmaster_modular",
+   "name": "Taskmaster",
+   "type": "modular"
+  },
+  {
+   "code": "deadly_duo",
+   "name": "Deadly Duo",
+   "type": "modular"
+  },
+  {
+   "code": "vision_leader",
+   "name": "Vision",
+   "type": "leader"
+  },
+  {
+   "code": "synthezoid_resistance",
+   "name": "Resistance",
+   "type": "main_scheme"
+  },
+  {
+   "code": "young_avengers",
+   "name": "Young Avengers",
+   "type": "modular"
+  },
+  {
+   "code": "scarlet_twins",
+   "name": "Scarlet Twins",
+   "type": "modular"
+  },
+  {
+   "code": "moon_knight_modular",
+   "name": "Moon Knight",
+   "type": "modular"
+  },
+  {
+   "code": "royal_guard",
+   "name": "Royal Guard",
+   "type": "modular"
+  },
+  {
+   "code": "wonder_man",
+   "name": "Wonder Man",
+   "type": "hero"
+  },
+  {
+   "code": "wonder_man_nemesis",
+   "name": "Wonder Man Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "hercules",
+   "name": "Hercules",
+   "type": "hero"
+  },
+  {
+   "code": "hercules_labor_deck",
+   "name": "Labor Deck",
+   "type": "hero_special",
+   "parent": "hercules"
+  },
+  {
+   "code": "hercules_gift_deck",
+   "name": "Gift Deck",
+   "type": "hero_special",
+   "parent": "hercules"
+  },
+  {
+   "code": "hercules_nemesis",
+   "name": "Hercules Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "all_versus_all",
+   "name": "All Versus All",
+   "type": "modular"
+  },
+  {
+   "code": "daredevil",
+   "name": "Daredevil",
+   "type": "hero"
+  },
+  {
+   "code": "daredevil_sense_deck",
+   "name": "Sense Deck",
+   "type": "hero_special",
+   "parent": "daredevil"
+  },
+  {
+   "code": "daredevil_nemesis",
+   "name": "Daredevil Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "echo",
+   "name": "Echo",
+   "type": "hero"
+  },
+  {
+   "code": "echo_nemesis",
+   "name": "Echo Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "bullseye",
+   "name": "Bullseye",
+   "type": "villain"
+  },
+  {
+   "code": "electro",
+   "name": "Electro",
+   "type": "villain"
+  },
+  {
+   "code": "hammerhead",
+   "name": "Hammerhead",
+   "type": "villain"
+  },
+  {
+   "code": "purple_man",
+   "name": "Purple Man",
+   "type": "villain"
+  },
+  {
+   "code": "typhoid_mary",
+   "name": "Typhoid Mary",
+   "type": "villain"
+  },
+  {
+   "code": "art_museum_heist",
+   "name": "Art Museum Heist",
+   "type": "main_scheme"
+  },
+  {
+   "code": "the_getaway",
+   "name": "The Getaway",
+   "type": "main_scheme"
+  },
+  {
+   "code": "protection_racket",
+   "name": "Protection Racket",
+   "type": "main_scheme"
+  },
+  {
+   "code": "the_raft_breakout",
+   "name": "The Raft Breakout",
+   "type": "main_scheme"
+  },
+  {
+   "code": "stop_the_presses",
+   "name": "Stop The Presses!",
+   "type": "main_scheme"
+  },
+  {
+   "code": "kingpin",
+   "name": "Kingpin",
+   "type": "villain"
+  },
+  {
+   "code": "disasters",
+   "name": "Disasters",
+   "type": "modular"
+  },
+  {
+   "code": "cops",
+   "name": "Cops",
+   "type": "modular"
+  },
+  {
+   "code": "drive",
+   "name": "Drive",
+   "type": "modular"
+  },
+  {
+   "code": "the_owl",
+   "name": "The Owl",
+   "type": "modular"
+  },
+  {
+   "code": "tombstone",
+   "name": "Tombstone",
+   "type": "modular"
+  },
+  {
+   "code": "tracksuit_mafia",
+   "name": "Tracksuit Mafia",
+   "type": "modular"
+  },
+  {
+   "code": "fne_campaign",
+   "name": "Campaign",
+   "type": "modular"
+  },
+  {
+   "code": "jessica_jones",
+   "name": "Jessica Jones",
+   "type": "hero"
+  },
+  {
+   "code": "jessica_jones_nemesis",
+   "name": "Jessica Jones Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "luke_cage",
+   "name": "Luke Cage",
+   "type": "hero"
+  },
+  {
+   "code": "luke_cage_nemesis",
+   "name": "Luke Cage Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "elektra",
+   "name": "Elektra",
+   "type": "hero"
+  },
+  {
+   "code": "elektra_ninja_deck",
+   "name": "Ninja Deck",
+   "type": "hero_special",
+   "parent": "elektra"
+  },
+  {
+   "code": "elektra_nemesis",
+   "name": "Elektra Nemesis",
+   "type": "nemesis"
+  },
+  {
+   "code": "iron_fist",
+   "name": "Iron Fist",
+   "type": "hero"
+  },
+  {
+   "code": "iron_fist_nemesis",
+   "name": "Iron Fist Nemesis",
+   "type": "nemesis"
+  }
+ ],
+ "updated": "2026-11-26"
+}
