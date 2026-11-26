@@ -65,7 +65,14 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
   "No more tips" → localStorage `champions.tips`).
 - Look: comic lettering — Bangers for titles and every button (black-outlined caption boxes with hard
   shadows), POW starburst (`clip-path`) for each screen's main action (`button.primary`), Comic Neue text.
-- The board is a comic page (`.felt.page` CSS grid of `.cpanel` sections on white paper gutters, each with a
+- Solo / team-up / phones / upright screens use the **tabletop** (`.board.tabletop`, like Earthborne Rangers,
+  Kris's favourite layout): a normal responsive page (no scaled stage; `--cw` card width from the screen),
+  villain + schemes + piles at the top, an inked dashed "Engaged with …" zone, your mat (name chip, HP/THW/
+  ATK/DEF stat chips, identity, in-play reach, piles), and the hand docked at the bottom with action pills
+  (`.handbar`); prompts float bottom-right above it. Cards sit at small random tilts. The scaled
+  comic-page grid below is only the 1 v 1 console on iPads/computers held sideways.
+- Menus show hero portraits cropped from card art (`Face` in `Screens.tsx`), no emoji.
+- The comic page (`.felt.page` CSS grid of `.cpanel` sections on white paper gutters, each with a
   `Caption` box, flat colour + Ben-Day halftone dots; the villain is the splash panel with speed lines):
   villain · scheme · encounter / minions (· team) / hero · in play · your deck / hand. Landscape grid,
   `.pocket` (phones sideways: villain row, your row, hand) and `.portrait` (upright: two columns, stacked).

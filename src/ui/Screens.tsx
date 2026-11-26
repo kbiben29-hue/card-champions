@@ -39,15 +39,27 @@ export function Home({ onNew, onResume, resumeLabel, onJoin }: { onNew: () => vo
 			<div className="home-buttons">
 				{onResume && (
 					<button className="mode-card resume" onClick={onResume}>
-						<b>▶ {resumeLabel ?? 'Continue'}</b>
+						<span className="faces n1">
+							<Face code="01019a" />
+						</span>
+						<b>{resumeLabel ?? 'Continue'}</b>
 						<span>Pick up where you left off.</span>
 					</button>
 				)}
 				<button className="mode-card solo" onClick={onNew}>
+					<span className="faces n3">
+						<Face code="01001a" />
+						<Face code="01010a" />
+						<Face code="01040a" />
+					</span>
 					<b>New game</b>
 					<span>Solo, two-handed, co-op against the villain — or 1 v 1.</span>
 				</button>
 				<button className="mode-card join" onClick={onJoin}>
+					<span className="faces n2">
+						<Face code="03001a" />
+						<Face code="01029a" />
+					</span>
 					<b>Join a friend</b>
 					<span>Enter the code your friend sent you.</span>
 				</button>
@@ -77,12 +89,21 @@ export interface SetupResult {
 	online?: 'host'
 }
 
-const MODES: { id: Mode; title: string; text: string; icon: string }[] = [
-	{ id: 'solo', title: 'Solo', text: 'One hero against the villain.', icon: '🦸' },
-	{ id: 'two', title: 'Two-handed solo', text: 'You play two heroes side by side.', icon: '🦸🦸' },
-	{ id: 'coop', title: 'Co-op', text: '2–4 players: pass this device around, or play online with a friend.', icon: '🤝' },
-	{ id: 'pvp', title: '1 v 1', text: 'Civil War competitive: Registration vs Resistance, each racing to beat the other’s leader.', icon: '⚔️' },
+const MODES: { id: Mode; title: string; text: string; faces: string[] }[] = [
+	{ id: 'solo', title: 'Solo', text: 'One hero against the villain.', faces: ['01001a'] },
+	{ id: 'two', title: 'Two-handed solo', text: 'You play two heroes side by side.', faces: ['01010a', '01019a'] },
+	{ id: 'coop', title: 'Co-op', text: '2–4 players: pass this device around, or play online with a friend.', faces: ['01040a', '03001a', '06001a'] },
+	{ id: 'pvp', title: '1 v 1', text: 'Civil War competitive: Registration vs Resistance, each racing to beat the other’s leader.', faces: ['01029a', '03001a'] },
 ]
+
+/** A hero's portrait cut from the art on their card. */
+export function Face({ code, className = '' }: { code: string; className?: string }) {
+	return (
+		<span className={`face ${className}`}>
+			<CardImg code={code} />
+		</span>
+	)
+}
 
 export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: SetupResult) => void; onBack: () => void; guestMode?: Mode; onGuest?: (p: PlayerSetup) => void }) {
 	const guest = !!onGuest
@@ -159,7 +180,7 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 					})}
 				</div>
 				<button className="coll-btn" onClick={() => setShowColl(true)}>
-					📦 {coll ? `${coll.size} packs` : 'All packs'}
+					{coll ? `My packs (${coll.size})` : 'My packs: all'}
 				</button>
 			</div>
 
@@ -170,7 +191,12 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 						<div className="mode-grid">
 							{MODES.map((m) => (
 								<button key={m.id} className={`mode-card m-${m.id} ${mode === m.id ? 'picked' : ''}`} onClick={() => setMode(m.id)}>
-									<i>{m.icon}</i>
+									<span className={`faces n${m.faces.length}`}>
+										{m.faces.map((f, k) => (
+											<Face key={f} code={f} className={m.id === 'pvp' && k === 1 ? 'vs' : ''} />
+										))}
+										{m.id === 'pvp' && <em className="vs-burst">VS</em>}
+									</span>
 									<b>{m.title}</b>
 									<span>{m.text}</span>
 								</button>
@@ -200,7 +226,7 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 							</div>
 						)}
 						<details className="manual-guide">
-							<summary>📖 New to Marvel Champions? How a game goes</summary>
+							<summary>New to Marvel Champions? How a game goes</summary>
 							{(mode === 'pvp' ? ['pvp', 'round', 'turn', 'villainPhase'] : ['round', 'turn', 'pay', 'forms', 'villainPhase', 'stage']).map((k) => (
 								<div key={k} className="ref-rule">
 									<b>{RULES[k].title}</b>

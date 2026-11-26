@@ -271,35 +271,46 @@ export default function App() {
 
 	const seat = session.online?.seat
 	const canControl = (p: number) => (seat === undefined ? true : p === seat)
+	const consoleLayout = g.mode === 'pvp' && !fit.phone && !fit.portrait
+	const board = (
+		<Board
+			g={g}
+			viewer={seat ?? viewer}
+			setViewer={(p) => (seat === undefined ? setViewer(p) : undefined)}
+			layout={consoleLayout ? 'console' : 'table'}
+			dispatch={dispatch}
+			canControl={canControl}
+			onMenu={() => {
+				if (session.online) closeNet()
+				setSession(null)
+				setScreen({ k: 'home' })
+			}}
+			onUndo={!session.online && session.history.length > 1 ? () => setSession({ ...session, history: session.history.slice(0, -1) }) : undefined}
+			netBadge={session.online ? <span className="net">Online · {session.online.code}</span> : undefined}
+			tall={!fit.phone && fit.h >= 960}
+		/>
+	)
+	const handoff = cover !== null && (
+		<div className="handoff" onClick={() => setCover(null)}>
+			<div>
+				<h2>Pass the device to {g.players[cover].name}</h2>
+				<p>Tap when you're ready — your hand is hidden until then.</p>
+			</div>
+		</div>
+	)
+	// the tabletop is a normal responsive page (like Earthborne Rangers); the 1 v 1 console is a scaled stage
+	if (!consoleLayout)
+		return (
+			<div className="tt-wrap" ref={wrapRef}>
+				{board}
+				{handoff}
+			</div>
+		)
 	return (
 		<div className="stage-wrap" ref={wrapRef}>
 			<div className="stage" style={{ width: fit.w, height: fit.h, transform: `translate(${fit.left}px, ${fit.top}px) scale(${fit.scale})` }}>
-				<Board
-					g={g}
-					viewer={seat ?? viewer}
-					setViewer={(p) => (seat === undefined ? setViewer(p) : undefined)}
-					layout={g.mode === 'pvp' && !fit.phone && !fit.portrait ? 'console' : 'table'}
-					pocket={fit.phone && !fit.portrait}
-					tall={!(fit.phone && !fit.portrait) && fit.h >= 960}
-					portrait={fit.portrait}
-					dispatch={dispatch}
-					canControl={canControl}
-					onMenu={() => {
-						if (session.online) closeNet()
-						setSession(null)
-						setScreen({ k: 'home' })
-					}}
-					onUndo={!session.online && session.history.length > 1 ? () => setSession({ ...session, history: session.history.slice(0, -1) }) : undefined}
-					netBadge={session.online ? <span className="net">Online · {session.online.code}</span> : undefined}
-				/>
-				{cover !== null && (
-					<div className="handoff" onClick={() => setCover(null)}>
-						<div>
-							<h2>Pass the device to {g.players[cover].name}</h2>
-							<p>Tap when you're ready — your hand is hidden until then.</p>
-						</div>
-					</div>
-				)}
+				{board}
+				{handoff}
 			</div>
 		</div>
 	)

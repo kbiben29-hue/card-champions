@@ -240,8 +240,8 @@ export function Board({
 			? { onPointerDown: (e: React.PointerEvent) => onDown(uid, e), onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: () => (drag.current?.ghost?.remove(), (drag.current = null)) }
 			: { onClick: () => tapCard(uid) }
 
-	const tile = (x: Inst, opts: { size?: 'v' | 'm' | 's' | 'land' | 'land-s'; mine?: boolean; showHp?: boolean } = {}) => (
-		<Tile key={x.uid} g={g} x={x} size={opts.size ?? 'm'} glow={glow.has(x.uid)} selected={sel === x.uid} marked={marked.includes(x.uid)} {...dragProps(x.uid, !!opts.mine)} />
+	const tile = (x: Inst, opts: { size?: 'v' | 'm' | 's' | 'land' | 'land-s'; mine?: boolean; showHp?: boolean; label?: boolean } = {}) => (
+		<Tile key={x.uid} g={g} x={x} size={opts.size ?? 'm'} label={opts.label} glow={glow.has(x.uid)} selected={sel === x.uid} marked={marked.includes(x.uid)} {...dragProps(x.uid, !!opts.mine)} />
 	)
 
 	const villain = g.insts[ar.villain]
@@ -395,8 +395,14 @@ export function Board({
 
 	const statusBar = (
 		<div className="topbar">
-			<button onClick={onMenu}>☰{pocket ? '' : ' Menu'}</button>
-			{onUndo && <button onClick={onUndo}>↶{pocket ? '' : ' Undo'}</button>}
+			<button onClick={onMenu} title="Menu">
+				☰<span className="wide-only"> Menu</span>
+			</button>
+			{onUndo && (
+				<button onClick={onUndo} title="Undo">
+					↶<span className="wide-only"> Undo</span>
+				</button>
+			)}
 			<span className="phase">
 				Round {g.round} · {g.phase === 'player' ? `${g.players[g.active].name}'s turn` : g.phase === 'villain' ? 'Villain phase' : g.phase === 'over' ? 'Game over' : 'Setting up'}
 			</span>
@@ -413,7 +419,7 @@ export function Board({
 			{netBadge}
 			<span className="grow" />
 			<button className={showRef ? 'on' : ''} onClick={() => setShowRef(!showRef)}>
-				📖 Rules
+				Rules
 			</button>
 			<button className={showLog ? 'on' : ''} onClick={() => setShowLog(!showLog)}>
 				Log
@@ -497,7 +503,7 @@ export function Board({
 				{err && <div className="toast">{err}</div>}
 				{tip && (
 					<div className="tip-box">
-						<b>📖 {tip.title}</b>
+						<b>{tip.title}</b>
 						<p>{tip.text}</p>
 						<div className="row">
 							<button className="primary" onClick={() => setTip(null)}>
@@ -519,15 +525,175 @@ export function Board({
 				{over}
 			</div>
 		)
+	const idAct = canControl(me) ? actionsFor(g, me, pl.ident) : []
+	const hpMax = stat(g, pl.ident, 'hp')
+	const ident = g.insts[pl.ident]
+	const tabletop = (
+		<main
+			className="felt2"
+			onClick={(e) => {
+				if (e.target === e.currentTarget) setSel(null)
+			}}
+		>
+			{g.mode === 'pvp' && <EnemyStrip g={g} area={1 - area} />}
+			<section className="sky">
+				<div className="group villain-group">
+					{villain && tile(villain, { size: 'v', label: true })}
+					{villain && attachments(g, villain.uid).length > 0 && <div className="attach-col">{attachments(g, villain.uid).map((a) => tile(a, { size: 's' }))}</div>}
+					{boostCards.length > 0 && (
+						<div className="boosts">
+							{boostCards.map((b) => (
+								<div key={b.uid} className="facedown small" title="Boost card">
+									✹
+								</div>
+							))}
+						</div>
+					)}
+				</div>
+				<div className="group scheme-group">
+					{main && tile(main, { size: 'land', label: true })}
+					{sides(g, area).map((x) => tile(x, { size: 'land-s', label: true }))}
+				</div>
+				{inZone(g, area, 'env').length > 0 && <div className="group">{inZone(g, area, 'env').map((x) => tile(x, { size: 's', label: true }))}</div>}
+			</section>
+			<section className="piles-row">
+				<Pile label="Encounter" n={enc} back />
+				<Pile label="Discard" n={ar.encDiscard.length} code={encTop !== undefined ? g.insts[encTop]?.code : undefined} />
+			</section>
+			<section className="along">
+				<span className="zone-label">Engaged with {formCard(g, me).n}</span>
+				<div className="row center">
+					{engaged(g, me).map((m) => (
+						<div className="with-attach" key={m.uid}>
+							{tile(m, { size: 'm', label: true })}
+							{attachments(g, m.uid).map((a) => tile(a, { size: 's' }))}
+						</div>
+					))}
+					{dealt.map((x) => (
+						<div key={x.uid} className="facedown" title="Encounter card dealt to you">
+							?
+						</div>
+					))}
+					{!engaged(g, me).length && !dealt.length && <span className="quiet">no minions — the coast is clear</span>}
+				</div>
+			</section>
+			<section className="mats">
+				<div className={`mat me ${pl.form}`}>
+					<div className="mat-head">
+						<span className="chip name">{pl.name}</span>
+						<span className="chip form">{pl.form === 'hero' ? formCard(g, me).n : `${formCard(g, me).n} (alter ego)`}</span>
+						<span className="stat hp">
+							{Math.max(0, hpMax - ident.dmg)}
+							<small>HP</small>
+						</span>
+						{pl.form === 'hero' ? (
+							<>
+								<span className="stat thw">
+									{stat(g, pl.ident, 'thw')}
+									<small>THW</small>
+								</span>
+								<span className="stat atk">
+									{stat(g, pl.ident, 'atk')}
+									<small>ATK</small>
+								</span>
+								<span className="stat def">
+									{stat(g, pl.ident, 'def')}
+									<small>DEF</small>
+								</span>
+							</>
+						) : (
+							<span className="stat rec">
+								{stat(g, pl.ident, 'rec')}
+								<small>REC</small>
+							</span>
+						)}
+						{pl.pool && <span className="chip pool">+{pl.pool.length} resources</span>}
+					</div>
+					<div className="mat-body">
+						<div className="ident">{tile(ident, { size: 'v', mine: true })}</div>
+						<div className="reach">
+							{playArea(g, me).map((x) => (
+								<div className="with-attach" key={x.uid}>
+									{tile(x, { size: 'm', mine: true, label: true })}
+									{attachments(g, x.uid).map((a) => tile(a, { size: 's' }))}
+								</div>
+							))}
+							{attachedElsewhere.map((x) => (
+								<div className="attached-note" key={x.uid}>
+									{tile(x, { size: 's', mine: true })}
+									<small>on {nameOf(g, x.host!)}</small>
+								</div>
+							))}
+							{!playArea(g, me).length && !attachedElsewhere.length && <span className="zone-label">in play — drag cards up here</span>}
+						</div>
+						<div className="piles small">
+							<Pile label="Deck" n={pl.deck.length} back mine />
+							<Pile label="Discard" n={pl.discard.length} code={pl.discard.length ? g.insts[pl.discard[pl.discard.length - 1]].code : undefined} />
+						</div>
+					</div>
+				</div>
+				{others.map((p) => (
+					<OtherHero key={p} g={g} p={p} onView={() => setViewer(p)} active={g.active === p} />
+				))}
+			</section>
+		</main>
+	)
+	const handbar = (
+		<section className="handbar">
+			<div className="dock">
+				{myTurn && !aim && !ending && (
+					<span className="acts">
+						{idAct.map((a, k) => (
+							<button key={k} className={`act act-${k}`} disabled={!!a.why} title={a.why ? `${a.label} — ${a.why}` : a.label} onClick={() => startAim(a.intent)}>
+								{a.intent.t === 'ability' ? `${a.label.split(':')[0]} ability` : a.label}
+							</button>
+						))}
+						<button className="primary end" onClick={() => setEnding(true)}>
+							End turn
+						</button>
+					</span>
+				)}
+				{myTurn && ending && (
+					<span className="acts">
+						<span className="hint">Tap cards to discard before drawing up to {handSize(g, me)}</span>
+						<button className="primary end" onClick={() => (send({ t: 'endTurn', player: me, discard: marked }), setEnding(false), setMarked([]))}>
+							End turn{marked.length ? ` (discard ${marked.length})` : ''}
+						</button>
+						<button onClick={() => (setEnding(false), setMarked([]))}>Back</button>
+					</span>
+				)}
+				{!myTurn && !head && g.phase === 'player' && <span className="hint">{g.players[g.active].name} is taking their turn…</span>}
+			</div>
+			<div className="hand fan" data-anchor="hand">
+				{pl.hand.map((u, k) => {
+					const n = pl.hand.length
+					const mid = (n - 1) / 2
+					return (
+						<div
+							key={u}
+							data-uid={u}
+							className={`hcard ${playable(u) ? 'playable' : ''} ${sel === u ? 'selected' : ''} ${marked.includes(u) ? 'marked' : ''} ${glow.has(u) ? 'glow' : ''}`}
+							style={{ ['--r' as string]: `${(k - mid) * Math.min(4, 24 / n)}deg`, ['--y' as string]: `${Math.abs(k - mid) ** 1.6 * 2}px`, zIndex: sel === u ? 50 : k }}
+							{...dragProps(u, true)}
+						>
+							<CardImg code={g.insts[u].code} />
+							{(card(g.insts[u].code).res?.length ?? 0) > 0 && <span className="res-count">{card(g.insts[u].code).res!.length}</span>}
+						</div>
+					)
+				})}
+				{!pl.hand.length && <span className="quiet">no cards in hand</span>}
+			</div>
+		</section>
+	)
 	return (
-		<div className={`board ${pocket ? 'pocket' : ''} ${tall ? 'tall' : ''} ${portrait ? 'portrait' : 'landscape'}`}>
+		<div className="board tabletop">
 			{statusBar}
-			{table}
-			<div className="float-trays">
+			{tabletop}
+			{handbar}
+			<div className="trays">
 				{prompt}
 				{waiting}
 				{aimBox}
-				{actionBar}
 			</div>
 			{myPrompt && hidePrompt && (
 				<button className="show-prompt" onClick={() => setHidePrompt(false)}>
@@ -535,13 +701,12 @@ export function Board({
 				</button>
 			)}
 			{viewerBox}
-			<StatusPanel g={g} area={area} floating />
 			{showLog && <LogPanel g={g} floating onClose={() => setShowLog(false)} />}
 			{showRef && <Reference onClose={() => setShowRef(false)} tips={tips} setTips={(v) => (setTips(v), setTipsState(v))} />}
 			{err && <div className="toast">{err}</div>}
 			{tip && (
 				<div className="tip-box">
-					<b>📖 {tip.title}</b>
+					<b>{tip.title}</b>
 					<p>{tip.text}</p>
 					<div className="row">
 						<button className="primary" onClick={() => setTip(null)}>
@@ -588,7 +753,7 @@ function Spotlight({ code }: { code: string }) {
 	)
 }
 
-function Tile({ g, x, size, glow, selected, marked, ...rest }: { g: Game; x: Inst; size: string; glow: boolean; selected: boolean; marked: boolean } & React.HTMLAttributes<HTMLDivElement>) {
+function Tile({ g, x, size, glow, selected, marked, label, ...rest }: { g: Game; x: Inst; size: string; glow: boolean; selected: boolean; marked: boolean; label?: boolean } & React.HTMLAttributes<HTMLDivElement>) {
 	const c = card(x.code)
 	const hp = c.hp !== undefined || x.zone === 'identity' ? stat(g, x.uid, 'hp') : undefined
 	const isScheme = x.zone === 'main' || x.zone === 'side'
@@ -600,9 +765,11 @@ function Tile({ g, x, size, glow, selected, marked, ...rest }: { g: Game; x: Ins
 			data-uid={x.uid}
 			className={`tile size-${size} ${land ? 'land' : ''} ${x.ex ? 'exhausted' : ''} ${glow ? 'glow' : ''} ${selected ? 'selected' : ''} ${marked ? 'marked' : ''} zone-${x.zone}`}
 			title={cardTitle(x.code)}
+			style={{ ['--tilt' as string]: `${((x.uid * 37) % 7) - 3}deg` }}
 			{...rest}
 		>
 			<CardImg code={x.code} />
+			{label && <span className="tile-name">{c.n}</span>}
 			<div className="badges">
 				{hp !== undefined && !isScheme && (
 					<span className="badge hp" title="Hit points left">
@@ -633,10 +800,10 @@ function Tile({ g, x, size, glow, selected, marked, ...rest }: { g: Game; x: Ins
 	)
 }
 
-function Pile({ label, n, back, code }: { label: string; n: number; back?: boolean; code?: string }) {
+function Pile({ label, n, back, code, mine }: { label: string; n: number; back?: boolean; code?: string; mine?: boolean }) {
 	return (
 		<div className="pile">
-			{back || !code ? <div className={`pile-back ${n ? '' : 'none'}`}>{n}</div> : <CardImg code={code} />}
+			{back || !code ? <div className={`pile-back ${mine ? 'mine' : ''} ${n ? '' : 'none'}`}>{n}</div> : <CardImg code={code} />}
 			<small>
 				{label} {code ? `(${n})` : ''}
 			</small>
@@ -856,7 +1023,7 @@ function PromptBox({ g, p, me, marked, send, onHide }: { g: Game; p: Prompt; me:
 function RuleNote({ r }: { r: Rule }) {
 	return (
 		<details className="rule-note">
-			<summary>📖 {r.title}</summary>
+			<summary>{r.title}</summary>
 			<p>{r.text}</p>
 		</details>
 	)
@@ -982,7 +1149,7 @@ function Reference({ onClose, tips, setTips }: { onClose: () => void; tips: bool
 			<button className="close" onClick={onClose}>
 				×
 			</button>
-			<h3>📖 How to play</h3>
+			<h3>How to play</h3>
 			<div className="row">
 				<input placeholder="Search the rules" value={q} onChange={(e) => setQ(e.target.value)} />
 				<label className="nowrap">
