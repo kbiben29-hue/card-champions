@@ -5,6 +5,7 @@
 //    across the top, and a side column (status, prompt, card viewer, log) on the right.
 // Drag a hand card onto the table to play it, drag your hero or an ally onto an enemy to attack or
 // onto a scheme to thwart. Everything also works by tapping.
+import type * as React from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { card, has } from '../data/data'
 import {
@@ -53,6 +54,8 @@ export function Board({
 	onUndo,
 	canControl,
 	netBadge,
+	pocket = false,
+	tall = false,
 }: {
 	g: Game
 	viewer: number
@@ -63,6 +66,8 @@ export function Board({
 	onUndo?: () => void
 	canControl: (p: number) => boolean
 	netBadge?: React.ReactNode
+	pocket?: boolean
+	tall?: boolean
 }) {
 	const [sel, setSel] = useState<number | null>(null)
 	const [aim, setAim] = useState<Aim | null>(null)
@@ -230,7 +235,7 @@ export function Board({
 
 	const table = (
 		<div className={`felt ${layout}`}>
-			{layout === 'console' && g.mode === 'pvp' && <EnemyStrip g={g} area={1 - area} />}
+			{g.mode === 'pvp' && <EnemyStrip g={g} area={1 - area} />}
 			<div className="band villain-band">
 				<div className="villain-slot">
 					{villain && (
@@ -344,8 +349,8 @@ export function Board({
 
 	const statusBar = (
 		<div className="topbar">
-			<button onClick={onMenu}>☰ Menu</button>
-			{onUndo && <button onClick={onUndo}>↶ Undo</button>}
+			<button onClick={onMenu}>☰{pocket ? '' : ' Menu'}</button>
+			{onUndo && <button onClick={onUndo}>↶{pocket ? '' : ' Undo'}</button>}
 			<span className="phase">
 				Round {g.round} · {g.phase === 'player' ? `${g.players[g.active].name}'s turn` : g.phase === 'villain' ? 'Villain phase' : g.phase === 'over' ? 'Game over' : 'Setting up'}
 			</span>
@@ -428,7 +433,7 @@ export function Board({
 
 	if (layout === 'console')
 		return (
-			<div className="board console">
+			<div className={`board console ${tall ? 'tall' : ''}`}>
 				{statusBar}
 				<div className="console-main">
 					{table}
@@ -449,7 +454,7 @@ export function Board({
 			</div>
 		)
 	return (
-		<div className="board">
+		<div className={`board ${pocket ? 'pocket' : ''} ${tall ? 'tall' : ''}`}>
 			{statusBar}
 			{table}
 			<div className="float-trays">

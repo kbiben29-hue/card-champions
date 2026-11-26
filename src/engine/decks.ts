@@ -102,3 +102,54 @@ export function fromMarvelCdb(j: { name?: string; investigator_code?: string; he
 
 export const deckSize = (d: DeckList) => deckCodes(d).length
 export const cardName = (code: string) => card(code).n
+
+// ───────── pack decks (the deck that comes in the hero's box) ─────────
+
+/** Aspects the hero's own pack brings, most cards first. The core set heroes have fixed ones. */
+const CORE_ASPECT: Record<string, string> = {
+	spider_man: 'justice',
+	captain_marvel: 'leadership',
+	she_hulk: 'aggression',
+	iron_man: 'aggression',
+	black_panther: 'protection',
+}
+export function packAspect(heroSet: string): string {
+	if (CORE_ASPECT[heroSet]) return CORE_ASPECT[heroSet]
+	const h = heroes().find((x) => x.set === heroSet)!
+	const sameBox = heroes().filter((x) => x.pack === h.pack)
+	const counts = new Map<string, number>()
+	for (const c of CARDS) if (c.p === h.pack && (ASPECTS as readonly string[]).includes(c.f)) counts.set(c.f, (counts.get(c.f) ?? 0) + c.q)
+	if (CARDS.some((c) => c.p === h.pack && c.f === 'pool')) return 'pool'
+	const ranked = [...counts].sort((a, b) => b[1] - a[1]).map(([a]) => a)
+	// big boxes with two heroes: the first hero takes the biggest aspect, the second the next one
+	const k = sameBox.findIndex((x) => x.set === heroSet)
+	return ranked[Math.min(k, ranked.length - 1)] ?? 'justice'
+}
+
+/** The hero's kit plus the aspect and basic cards from its own box, topped up to 40. */
+export function packDeck(heroSet: string, packs: Set<string> | null = null): DeckList {
+	const h = heroes().find((x) => x.set === heroSet)!
+	const aspect = packAspect(heroSet)
+	const kitCount = h.kit.reduce((a, [, n]) => a + n, 0)
+	const need = 40 - kitCount
+	const cards: Record<string, number> = {}
+	let n = 0
+	const add = (c: CardData, k: number) => {
+		k = Math.min(k, need - n, c.dl ?? 3)
+		if (k <= 0) return
+		cards[c.c] = (cards[c.c] ?? 0) + k
+		n += k
+	}
+	const box = CARDS.filter((c) => c.p === h.pack && ['ally', 'event', 'upgrade', 'support', 'resource'].includes(c.t) && !c.st?.endsWith('_leader'))
+	for (const c of box) if (c.f === aspect) add(c, c.q)
+	for (const c of box) if (c.f === 'basic') add(c, c.q)
+	if (n < need) {
+		const fill = starterDeck(heroSet, aspect === 'pool' ? 'justice' : aspect, packs, 11)
+		for (const [code, k] of Object.entries(fill.cards)) {
+			if (n >= need) break
+			if (cards[code]) continue
+			add(card(code), k)
+		}
+	}
+	return { name: `${h.name} — box deck (${aspect[0].toUpperCase()}${aspect.slice(1)})`, hero: heroSet, aspect, cards }
+}

@@ -51,6 +51,14 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
 - `src/engine/decks.ts` — starter decks (hero kit + aspect + basic, 40 cards from owned packs),
   MarvelCDB import (`fromMarvelCdb`, public API `/api/public/decklist|deck/<id>`).
 - `src/engine/autoplay.ts` — a simple autoplayer for tests and `npm run sim` (not an opponent).
+- New-game wizard (`Screens.tsx`): 1 How to play (solo · two-handed solo · co-op on one device or online ·
+  1 v 1 on one device or online) → 2 Heroes (seat tabs; deck = box deck `packDeck()` / build by aspect
+  `starterDeck()` / MarvelCDB link) → 3 Villain (by expansion or all; 1 v 1: the two leaders) → 4 Ready
+  (Standard/Expert, modular sets). Collection (📦) dims unowned packs. Online co-op: host + 1 friend in area 0.
+- Screen sizes (`App.tsx useFit`): phones (coarse pointer, short side < 600) get a 960-wide stage and the
+  `.pocket` CSS (compact cards, full-screen viewer/log sheets, 1 v 1 uses the table + enemy strip instead of
+  the console); tablets/computers get 1440 wide, `.tall` bigger cards when the stage is ≥ 960 high (iPad).
+  The stage sits inside the safe area (notch / home bar).
 - `src/ui/` — `Board.tsx` (both layouts, drag & drop with pointer events, tap → `Viewer` with actions and
   table tools, `PromptBox`, `Reference` rules card, log), `Screens.tsx` (home, new game: heroes, aspects,
   deck import, collection, villain + modular + expert, Civil War leaders, join), `Card.tsx` (pictures with

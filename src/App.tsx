@@ -1,13 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { apply, newGame, type Game, type Intent, type PlayerSetup, type Setup } from './engine/engine'
 import { Board } from './ui/Board'
-import { Home, JoinScreen, NewGame, type Mode, type SetupResult } from './ui/Screens'
+import { Home, JoinScreen, NewGame, type SetupResult } from './ui/Screens'
 import { hostGame, joinGame, newGameCode, type Conn, type Host } from './net/transport'
 import { clearJoinFromUrl, isGuestMsg, isHostMsg, joinCodeFromUrl, joinLink, type HostMsg } from './net/online'
 
-const W = 1440
-/** the table is 1440 wide; its height follows the screen's shape (iPad 4:3 gets a taller table) */
-const heightFor = () => (typeof window === 'undefined' ? 900 : Math.round(Math.min(1080, Math.max(800, (W * window.innerHeight) / window.innerWidth))))
+/** Phones (touch, short side under 600px) get the compact "pocket" table; iPads and computers the full one. */
+const isPhone = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches && Math.min(window.innerWidth, window.innerHeight) < 600
 const SAVE = 'champions.save.v1'
 
 interface Session {
@@ -33,19 +32,26 @@ function writeSave(s: Session | null) {
 	}
 }
 
-function useFit(active: boolean) {
-	const [fit, setFit] = useState({ scale: 1, left: 0, top: 0, h: 900 })
+/** The table is a fixed-width stage (1440, or 960 on phones) scaled to fill the safe area; its height follows the screen's shape. */
+function useFit(wrap: RefObject<HTMLDivElement | null>, active: boolean) {
+	const [fit, setFit] = useState({ scale: 1, left: 0, top: 0, w: 1440, h: 900, phone: false })
 	useLayoutEffect(() => {
 		const f = () => {
-			const H = heightFor()
-			const scale = Math.min(window.innerWidth / W, window.innerHeight / H)
-			setFit({ scale, left: (window.innerWidth - W * scale) / 2, top: (window.innerHeight - H * scale) / 2, h: H })
+			const r = wrap.current?.getBoundingClientRect()
+			const vw = r?.width || window.innerWidth
+			const vh = r?.height || window.innerHeight
+			const phone = isPhone()
+			const w = phone ? 960 : 1440
+			const h = Math.round(Math.min(phone ? 1100 : 2000, Math.max(phone ? 430 : 800, (w * vh) / vw)))
+			const scale = Math.min(vw / w, vh / h)
+			setFit({ scale, left: (vw - w * scale) / 2, top: (vh - h * scale) / 2, w, h, phone })
 		}
 		f()
+		const t = setTimeout(f, 300)
 		window.addEventListener('resize', f)
 		window.addEventListener('orientationchange', f)
-		return () => (window.removeEventListener('resize', f), window.removeEventListener('orientationchange', f))
-	}, [active])
+		return () => (clearTimeout(t), window.removeEventListener('resize', f), window.removeEventListener('orientationchange', f))
+	}, [active, wrap])
 	return fit
 }
 
@@ -54,7 +60,7 @@ const actor = (g: Game) => (g.queue[0] ? g.queue[0].who : g.active)
 
 export default function App() {
 	const [session, setSession] = useState<Session | null>(null)
-	const [screen, setScreen] = useState<{ k: 'home' } | { k: 'new'; mode: Mode } | { k: 'join'; code?: string } | { k: 'lobby' }>(() => {
+	const [screen, setScreen] = useState<{ k: 'home' } | { k: 'new' } | { k: 'join'; code?: string } | { k: 'lobby' }>(() => {
 		const j = joinCodeFromUrl()
 		return j ? { k: 'join', code: j } : { k: 'home' }
 	})
@@ -64,7 +70,8 @@ export default function App() {
 	const hostRef = useRef<Host | null>(null)
 	const connRef = useRef<Conn | null>(null)
 	const pendingSetup = useRef<Setup | null>(null)
-	const fit = useFit(!!session)
+	const wrapRef = useRef<HTMLDivElement>(null)
+	const fit = useFit(wrapRef, !!session)
 	const g = session?.history[session.history.length - 1] ?? null
 
 	useEffect(() => writeSave(session), [session])
@@ -149,7 +156,7 @@ export default function App() {
 						}
 						const st = setup ?? pendingSetup.current
 						if (!st) return
-						const guest: PlayerSetup = { ...m.player, area: 1 }
+						const guest: PlayerSetup = { ...m.player, area: st.mode === 'pvp' ? 1 : 0, name: st.mode === 'pvp' ? 'Resistance' : m.player.name === st.players[0].name ? 'Friend' : m.player.name }
 						const full: Setup = { ...st, players: [st.players[0], guest] }
 						const game = newGame(full)
 						const ns: Session = { history: [game], online: { role: 'host', code, seat: 0 }, hotseat: false }
@@ -229,16 +236,16 @@ export default function App() {
 					</div>
 				</div>
 			)
-		if (screen.k === 'new') return <NewGame mode={screen.mode} onStart={start} onBack={() => setScreen({ k: 'home' })} />
+		if (screen.k === 'new') return <NewGame onStart={start} onBack={() => setScreen({ k: 'home' })} />
 		if (screen.k === 'join')
 			return screen.code ? (
-				<NewGame mode="pvp" onStart={() => {}} onBack={() => setScreen({ k: 'home' })} guest={(p) => openGuest(screen.code!, { ...p, area: 1 })} />
+				<NewGame onStart={() => {}} onBack={() => setScreen({ k: 'home' })} onGuest={(p) => openGuest(screen.code!, { ...p, name: 'Friend' })} />
 			) : (
 				<JoinScreen onBack={() => setScreen({ k: 'home' })} onJoin={(code) => setScreen({ k: 'join', code })} />
 			)
 		return (
 			<Home
-				onNew={(m) => setScreen({ k: 'new', mode: m })}
+				onNew={() => setScreen({ k: 'new' })}
 				onJoin={() => setScreen({ k: 'join' })}
 				onResume={
 					saved
@@ -263,14 +270,16 @@ export default function App() {
 	const seat = session.online?.seat
 	const canControl = (p: number) => (seat === undefined ? true : p === seat)
 	return (
-		<div className="stage-wrap">
+		<div className="stage-wrap" ref={wrapRef}>
 			<div className="rotate-hint">Turn your phone sideways for the table.</div>
-			<div className="stage" style={{ width: W, height: fit.h, transform: `translate(${fit.left}px, ${fit.top}px) scale(${fit.scale})` }}>
+			<div className="stage" style={{ width: fit.w, height: fit.h, transform: `translate(${fit.left}px, ${fit.top}px) scale(${fit.scale})` }}>
 				<Board
 					g={g}
 					viewer={seat ?? viewer}
 					setViewer={(p) => (seat === undefined ? setViewer(p) : undefined)}
-					layout={g.mode === 'pvp' ? 'console' : 'table'}
+					layout={g.mode === 'pvp' && !fit.phone ? 'console' : 'table'}
+					pocket={fit.phone}
+					tall={!fit.phone && fit.h >= 960}
 					dispatch={dispatch}
 					canControl={canControl}
 					onMenu={() => {

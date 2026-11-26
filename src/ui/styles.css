@@ -509,7 +509,10 @@ small {
 /* ───────── stage & board ───────── */
 .stage-wrap {
 	position: fixed;
-	inset: 0;
+	top: env(safe-area-inset-top);
+	right: env(safe-area-inset-right);
+	bottom: env(safe-area-inset-bottom);
+	left: env(safe-area-inset-left);
 	overflow: hidden;
 	background:
 		radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.035) 1px, transparent 1.6px) 0 0 / 10px 10px,
@@ -951,7 +954,6 @@ small {
 	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55);
 	display: block;
 }
-.hand-card:hover,
 .hand-card.selected {
 	transform: translateY(-34px) rotate(0deg) scale(1.08) !important;
 	z-index: 60 !important;
@@ -1531,4 +1533,752 @@ small {
 		font-weight: 700;
 		padding: 0.6rem;
 	}
+}
+
+@media (hover: hover) {
+	.hand-card:hover {
+		transform: translateY(-34px) rotate(0deg) scale(1.08) !important;
+		z-index: 60 !important;
+	}
+}
+html {
+	background: var(--bg);
+}
+
+/* ───────── home & wizard ───────── */
+.home-buttons {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 1rem;
+	width: min(820px, 100%);
+}
+.wizard {
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+	height: 100dvh;
+	overflow: hidden;
+}
+.wiz-head {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: max(0.6rem, env(safe-area-inset-top)) max(0.8rem, env(safe-area-inset-right)) 0.6rem max(0.8rem, env(safe-area-inset-left));
+	background: rgba(8, 12, 24, 0.85);
+	border-bottom: 2px solid var(--red);
+	flex: none;
+}
+.wiz-steps {
+	flex: 1;
+	display: flex;
+	gap: 0.3rem;
+	justify-content: center;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+.wiz-step {
+	background: none;
+	border: 0;
+	color: #8b93aa;
+	white-space: nowrap;
+	font-weight: 600;
+}
+.wiz-step span {
+	display: inline-flex;
+	width: 1.6em;
+	height: 1.6em;
+	border-radius: 999px;
+	align-items: center;
+	justify-content: center;
+	background: #24304f;
+	margin-right: 0.2em;
+	font-size: 0.85em;
+}
+.wiz-step.on {
+	color: var(--gold);
+	background: none;
+}
+.wiz-step.on span {
+	background: var(--gold);
+	color: #000;
+}
+.wiz-step.done {
+	color: #cfd6e8;
+}
+.wiz-step.done span {
+	background: var(--green);
+	color: #fff;
+}
+.wiz-step:disabled {
+	opacity: 1;
+}
+.wiz-body {
+	flex: 1;
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
+	padding: 0.8rem max(1rem, env(safe-area-inset-right)) 1.5rem max(1rem, env(safe-area-inset-left));
+	width: 100%;
+	max-width: 1180px;
+	margin: 0 auto;
+}
+.wiz-foot {
+	display: flex;
+	gap: 0.6rem;
+	align-items: center;
+	padding: 0.6rem max(1rem, env(safe-area-inset-right)) max(0.6rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+	background: rgba(8, 12, 24, 0.92);
+	border-top: 1px solid var(--line);
+	flex: none;
+}
+.grow {
+	flex: 1;
+}
+.nowrap {
+	white-space: nowrap;
+}
+.mode-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+	gap: 0.9rem;
+}
+.mode-card i {
+	font-style: normal;
+	font-size: 2rem;
+}
+.mode-card.picked {
+	border-color: var(--gold);
+	box-shadow:
+		0 0 0 3px var(--gold),
+		4px 4px 0 #000;
+}
+.m-two > b {
+	color: #ffd36b;
+}
+.m-coop > b {
+	color: #7fc1ff;
+}
+.m-pvp > b {
+	color: #ff7a6e;
+}
+.m-solo > b {
+	color: var(--gold);
+}
+.seg {
+	display: inline-flex;
+	gap: 0.3rem;
+	align-items: center;
+	flex-wrap: wrap;
+}
+.seg.wide button {
+	flex: 1;
+}
+.opts-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	align-items: center;
+}
+.seat-tabs {
+	display: flex;
+	gap: 0.5rem;
+	overflow-x: auto;
+	padding-bottom: 0.4rem;
+}
+.seat-tabs button {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+	text-align: left;
+	padding: 0.3rem 0.7rem 0.3rem 0.3rem;
+	flex: none;
+}
+.seat-tabs button span {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.1;
+}
+.seat-tabs button.on {
+	background: #2b3a63;
+	border-color: var(--gold);
+	color: #fff;
+}
+.seat-tabs button.on small {
+	color: var(--gold);
+}
+.tab-img {
+	width: 34px;
+	height: 48px;
+	object-fit: cover;
+	border-radius: 4px;
+}
+.seat-editor {
+	display: grid;
+	grid-template-columns: minmax(200px, 280px) 1fr;
+	gap: 1.2rem;
+	align-items: start;
+}
+.hero-big {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.hero-face {
+	position: relative;
+	padding: 0;
+	border-radius: 12px;
+	overflow: hidden;
+	aspect-ratio: 5 / 7;
+	width: 100%;
+	border: 2px solid #33457a;
+}
+.hero-face img,
+.hero-face .textcard {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.hero-face .change {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.7);
+	padding: 0.4rem;
+	font-weight: 700;
+	color: var(--gold);
+}
+.hero-meta h3 {
+	font-size: 2rem;
+	margin: 0;
+}
+.deck-choice {
+	background: var(--bg2);
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	padding: 0.8rem 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+.deck-choice h3 {
+	margin: 0;
+}
+.cdb .row input {
+	flex: 1;
+}
+.deck-peek .decklist {
+	columns: 2 220px;
+	font-size: 0.9rem;
+	margin-top: 0.4rem;
+}
+.deck-peek h4 {
+	margin: 0.4rem 0 0.1rem;
+	text-transform: capitalize;
+	color: var(--gold);
+	break-after: avoid;
+}
+.pack-strip {
+	display: flex;
+	gap: 0.4rem;
+	overflow-x: auto;
+	padding: 0.2rem 0 0.6rem;
+	scrollbar-width: thin;
+}
+.pack-strip button {
+	white-space: nowrap;
+	flex: none;
+}
+.pack-strip button.unowned,
+.villain-tile.unowned {
+	opacity: 0.55;
+}
+.search {
+	width: 100%;
+	margin-bottom: 0.6rem;
+}
+.villain-grid,
+.leader-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+	gap: 0.7rem;
+}
+.villain-tile {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.15rem;
+	padding: 0.4rem;
+	text-align: center;
+	position: relative;
+}
+.villain-tile img,
+.villain-tile .textcard {
+	width: 100%;
+	aspect-ratio: 5 / 7;
+	object-fit: cover;
+	border-radius: 7px;
+}
+.villain-tile b {
+	font-family: 'Bebas Neue', sans-serif;
+	font-weight: 400;
+	font-size: 1.25rem;
+	line-height: 1;
+}
+.villain-tile.picked {
+	border-color: var(--gold);
+	box-shadow: 0 0 0 3px var(--gold);
+}
+.villain-tile .partial {
+	font-size: 0.72rem;
+	color: #ffb36b;
+}
+.leaders {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+}
+.leader-col.registration h3 {
+	color: #7fc1ff;
+}
+.leader-col.resistance h3 {
+	color: #ff7a6e;
+}
+.ready-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+}
+.sum-row {
+	display: flex;
+	gap: 0.7rem;
+	align-items: center;
+	margin: 0.5rem 0;
+}
+.sum-img {
+	width: 52px;
+	height: 73px;
+	object-fit: cover;
+	border-radius: 5px;
+	flex: none;
+}
+.chips {
+	display: flex;
+	flex-wrap: wrap;
+	margin-bottom: 0.4rem;
+}
+.modal.sheet .modal-box {
+	max-height: calc(100dvh - 2rem);
+}
+.row.sticky {
+	position: sticky;
+	top: -1rem;
+	background: var(--bg2);
+	z-index: 2;
+	padding: 0.4rem 0;
+	flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+	.seat-editor,
+	.ready-grid,
+	.leaders {
+		grid-template-columns: 1fr;
+	}
+	.hero-big {
+		flex-direction: row;
+		align-items: center;
+	}
+	.hero-face {
+		width: 120px;
+		flex: none;
+	}
+	.wiz-step {
+		font-size: 0;
+	}
+	.wiz-step span {
+		font-size: 0.85rem;
+	}
+	.wiz-step.on {
+		font-size: 0.95rem;
+	}
+	.logo-b {
+		font-size: 3.6rem;
+	}
+	.logo-a {
+		font-size: 2rem;
+	}
+	.villain-grid,
+	.leader-grid,
+	.hero-grid {
+		grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+	}
+	h2 {
+		font-size: 1.6rem;
+	}
+	.modal {
+		padding: 0;
+	}
+	.modal.sheet .modal-box {
+		max-height: 100dvh;
+		height: 100dvh;
+		width: 100vw;
+		border-radius: 0;
+		padding-top: max(0.8rem, env(safe-area-inset-top));
+		padding-left: max(0.8rem, env(safe-area-inset-left));
+		padding-right: max(0.8rem, env(safe-area-inset-right));
+	}
+}
+@media (max-height: 500px) {
+	.mode-card {
+		min-height: 0;
+		padding: 0.6rem 0.9rem;
+	}
+	.mode-card i {
+		font-size: 1.3rem;
+	}
+	.wiz-body h2 {
+		margin: 0 0 0.3rem;
+	}
+	.home {
+		gap: 0.7rem;
+	}
+	.logo-b {
+		font-size: 2.6rem;
+	}
+	.logo-a {
+		font-size: 1.4rem;
+	}
+	.hero-face {
+		width: 110px;
+	}
+	.seat-editor {
+		grid-template-columns: 130px 1fr;
+	}
+	.villain-grid,
+	.leader-grid,
+	.hero-grid {
+		grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+	}
+	.villain-tile b {
+		font-size: 1rem;
+	}
+	.villain-tile small {
+		display: none;
+	}
+}
+
+/* ───────── pocket: phone table (960-wide stage) ───────── */
+.board.pocket {
+	font-size: 14px;
+}
+.pocket .topbar {
+	height: 34px;
+	gap: 0.3rem;
+	padding: 0 0.4rem;
+}
+.pocket .topbar button {
+	min-height: 26px;
+	padding: 0.1em 0.55em;
+	font-size: 0.85rem;
+}
+.pocket .topbar .phase {
+	font-size: 1.1rem;
+}
+.pocket .band {
+	gap: 8px;
+	padding: 4px 8px;
+}
+.pocket .villain-band {
+	height: 118px;
+}
+.pocket .minion-band {
+	min-height: 84px;
+}
+.pocket .mat-band {
+	height: 108px;
+}
+.pocket .hand {
+	height: 100px;
+	padding: 0 70px 2px;
+}
+.pocket .size-v {
+	width: 80px;
+	height: 112px;
+}
+.pocket .size-m {
+	width: 62px;
+	height: 87px;
+}
+.pocket .size-s {
+	width: 40px;
+	height: 56px;
+}
+.pocket .size-land {
+	width: 150px;
+	height: 108px;
+}
+.pocket .size-land-s {
+	width: 104px;
+	height: 75px;
+}
+.pocket .side-row {
+	max-height: 116px;
+	gap: 5px;
+}
+.pocket .tile.exhausted {
+	margin: 0 12px;
+}
+.pocket .pile,
+.pocket .pile img,
+.pocket .pile .textcard,
+.pocket .pile-back {
+	width: 50px;
+}
+.pocket .pile img,
+.pocket .pile .textcard,
+.pocket .pile-back {
+	height: 70px;
+	font-size: 1.3rem;
+	border-width: 2px;
+}
+.pocket .pile small {
+	font-size: 0.65rem;
+}
+.pocket .boosts {
+	left: 50px;
+	top: 70px;
+}
+.pocket .facedown {
+	width: 40px;
+	height: 56px;
+	font-size: 1.3rem;
+}
+.pocket .badge {
+	font-size: 0.68rem;
+	padding: 0 4px;
+	border-width: 1px;
+}
+.pocket .badge.st,
+.pocket .badge.kw {
+	font-size: 0.52rem;
+}
+.pocket .band-label {
+	font-size: 0.6rem;
+	top: 0;
+	left: 8px;
+}
+.pocket .minion-row,
+.pocket .play-row {
+	padding-top: 10px;
+	gap: 6px;
+}
+.pocket .empty {
+	padding: 22px 6px;
+	font-size: 0.8rem;
+}
+.pocket .ident-info {
+	width: 70px;
+	font-size: 0.75rem;
+}
+.pocket .ident-info > b {
+	font-size: 1.1rem;
+}
+.pocket .others {
+	width: 170px;
+	gap: 3px;
+}
+.pocket .other {
+	font-size: 0.68rem;
+	padding: 2px;
+	min-height: 0;
+}
+.pocket .other img,
+.pocket .other .textcard {
+	width: 26px;
+	height: 36px;
+}
+.pocket .hand-card {
+	width: 70px;
+	height: 98px;
+	margin: 0 -6px;
+}
+.pocket .hand-card.selected {
+	transform: translateY(-40px) scale(1.35) !important;
+}
+.pocket .res-count {
+	font-size: 0.65rem;
+	min-width: 16px;
+}
+.pocket .with-attach .size-s {
+	margin-left: -18px;
+	margin-top: 24px;
+}
+.pocket .float-trays {
+	bottom: 104px;
+	width: 600px;
+}
+.pocket .tray {
+	padding: 0.45rem 0.6rem;
+	font-size: 0.85rem;
+	box-shadow: 3px 3px 0 #000;
+	max-height: 230px;
+	overflow-y: auto;
+}
+.pocket .tray button {
+	min-height: 30px;
+	padding: 0.15em 0.6em;
+}
+.pocket .tray-card {
+	width: 30px;
+	height: 42px;
+}
+.pocket .tray-head b {
+	font-size: 0.9rem;
+}
+.pocket .action-bar {
+	padding: 0.2rem 0.3rem 0.2rem 0.7rem;
+	font-size: 0.8rem;
+}
+.pocket .show-prompt {
+	bottom: 110px;
+}
+.pocket .viewer {
+	inset: 40px 8px 8px 8px;
+	width: auto;
+	max-height: none;
+	box-shadow: 4px 4px 0 #000;
+}
+.pocket .viewer-img,
+.pocket .viewer-img img,
+.pocket .viewer-img .textcard {
+	width: 230px;
+	height: 322px;
+}
+.pocket .viewer-img.land,
+.pocket .viewer-img.land img,
+.pocket .viewer-img.land .textcard {
+	width: 300px;
+	height: 214px;
+}
+.pocket .viewer .close,
+.pocket .log .close,
+.pocket .reference .close {
+	min-height: 36px;
+	min-width: 36px;
+	font-size: 1.2rem;
+}
+.pocket .log.floating,
+.pocket .reference {
+	inset: 40px 8px 8px 8px;
+	width: auto;
+	height: auto;
+	max-height: none;
+}
+.pocket .spotlight {
+	left: 10px;
+	top: 40px;
+	width: 140px;
+}
+.pocket .spotlight img,
+.pocket .spotlight .textcard {
+	width: 140px;
+	height: 196px;
+}
+.pocket .banner {
+	font-size: 2.6rem;
+}
+.pocket .toast {
+	top: 40px;
+	font-size: 0.85rem;
+}
+.pocket .enemy-strip {
+	height: 34px;
+	font-size: 0.7rem !important;
+	gap: 8px;
+	padding: 2px 8px;
+}
+.pocket .enemy-strip > b {
+	font-size: 1rem;
+}
+.pocket .es-img {
+	width: 20px;
+	height: 28px;
+}
+.pocket .handoff h2,
+.pocket ~ .handoff h2 {
+	font-size: 2rem;
+}
+.pocket .modal-box.over {
+	min-width: 300px;
+}
+
+/* ───────── tall tables (iPad, 4:3 screens): bigger cards ───────── */
+.tall .villain-band {
+	height: 312px;
+}
+.tall .mat-band {
+	height: 268px;
+}
+.tall .hand {
+	height: 240px;
+}
+.tall .size-v {
+	width: 172px;
+	height: 241px;
+}
+.tall .size-m {
+	width: 134px;
+	height: 188px;
+}
+.tall .size-s {
+	width: 76px;
+	height: 106px;
+}
+.tall .size-land {
+	width: 300px;
+	height: 214px;
+}
+.tall .size-land-s {
+	width: 206px;
+	height: 147px;
+}
+.tall .side-row {
+	max-height: 300px;
+}
+.tall .hand-card {
+	width: 156px;
+	height: 218px;
+	margin: 0 -16px;
+}
+.tall .float-trays {
+	bottom: 256px;
+}
+.tall .show-prompt {
+	bottom: 256px;
+}
+.tall .pile,
+.tall .pile img,
+.tall .pile .textcard,
+.tall .pile-back {
+	width: 100px;
+}
+.tall .pile img,
+.tall .pile .textcard,
+.tall .pile-back {
+	height: 140px;
+}
+.tall .badge {
+	font-size: 1rem;
+}
+.tall .tile.exhausted.size-v {
+	margin: 0 36px;
+}
+.tall .ident-info > b {
+	font-size: 2rem;
+}
+.board.console.tall .felt .hand-card {
+	width: 128px;
+	height: 179px;
+}
+.board.console.tall .hand {
+	height: 200px;
 }
