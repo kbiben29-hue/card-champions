@@ -88,7 +88,8 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
   `.pocket` CSS (compact cards, full-screen viewer/log sheets, 1 v 1 uses the table + enemy strip instead of
   the console); tablets/computers get 1440 wide, `.tall` bigger cards when the stage is ≥ 960 high (iPad).
   The stage sits inside the safe area (notch / home bar).
-- `src/ui/` — `Board.tsx` (both layouts, drag & drop with pointer events, tap → `Viewer` with actions and
+- `src/ui/` — `Board.tsx` (both layouts, drag & drop with window-level pointer listeners — `onDown`/`drop`,
+  landing animation `SlamFx` (cracks, dust, WHAM, table shake) for any card that newly lands on the table, tap → `Viewer` with actions and
   table tools, `PromptBox`, `Reference` rules card, log), `Screens.tsx` (home, new game: heroes, aspects,
   deck import, collection, villain + modular + expert, Civil War leaders, join), `Card.tsx` (pictures with
   fallback text cards, rules text with icons), `styles.css`.
@@ -105,8 +106,11 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
 
 ## Next steps
 
-0. Card text automation in progress: read so far ~41% of player abilities, ~42% of encounter abilities
-   (core set 145/198). Engine steps added: encounter searches (`encSearch`), drones (facedown 1/1/1
+0. Card text automation in progress: read so far ~44% of player abilities, ~45% of encounter abilities
+   (core set 155/198); `npm run sim -- 120 --why` lists the unread text players actually hit, most first.
+   "When X attacks" abilities now run as steps during the activation (`attackPlus`, choices, discard after
+   attack); "Special" abilities (with their italic labels, e.g. The Hood's Foul Play) resolve via `special`;
+   coloured costs inside choices via `spendRes`. Engine steps added: encounter searches (`encSearch`), drones (facedown 1/1/1
    minions), "if X is (not) in play", "(N instead if …)" yes/no, "for each …" counts (`countOf`),
    look-at-top-N, counters on named cards, shield, win… Next: the long tail from the coverage script
    (scenario-specific: Kang, Hood, Loki, Mojo, missions; resource-colour conditions).

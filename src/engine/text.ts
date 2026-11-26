@@ -82,6 +82,17 @@ export type Step =
 	| { k: 'traitAttack'; trait: string; mine: boolean }
 	| { k: 'choosePlayer' }
 	| { k: 'win' }
+	| { k: 'dealThatUnlessSet'; set: string }
+	| { k: 'special'; on: string; label?: string; mine: boolean; one: boolean }
+	| { k: 'redirectAttack' }
+	| { k: 'statusOr'; s: 'stun' | 'conf'; alt: Step[] }
+	| { k: 'spendRes'; r: string; n: number }
+	| { k: 'attackPlus'; n: Num; stat: 'atk' | 'sch' }
+	| { k: 'ifCounters'; n: number; steps: Step[] }
+	| { k: 'ifHero'; steps: Step[] }
+	| { k: 'minionsActivate' }
+	| { k: 'engageSelf' }
+	| { k: 'shuffleOwnDeck' }
 	| { k: 'encReshuffle' }
 	| { k: 'accel'; n: number }
 	| { k: 'defeat'; who: Who }
@@ -115,6 +126,8 @@ export interface Ability {
 	cost: Cost[]
 	steps: Step[]
 	text: string
+	/** "Foul Play" in "<i>Foul Play</i> — <b>Special</b>: …" */
+	label?: string
 	limit?: 'round' | 'phase'
 	/** for When Revealed (Hero) / (Alter-Ego) */
 	revealForm?: 'hero' | 'alter'
@@ -281,6 +294,84 @@ function sentence(raw: string, names: string[], villainNames: string[]): Step[] 
 	if ((m = s.match(/^each character (?:that player|you) controls? gets \+(\d+) (THW|ATK|DEF) and \+(\d+) (THW|ATK|DEF) until the end of the phase$/i)))
 		return [{ k: 'bonus', stat: m[2].toLowerCase() as 'atk', n: Number(m[1]), who: 'eachFriendly' }, { k: 'bonus', stat: m[4].toLowerCase() as 'atk', n: Number(m[3]), who: 'eachFriendly' }]
 	if (/^the players win the game$/i.test(s)) return [{ k: 'win' }]
+	if ((m = s.match(/^give (?:him|her|it|the villain|this enemy|that enemy) (\d+|an) additional boost cards? for (?:that|this) (?:activation|attack)$/i))) return [{ k: 'extraBoost', n: /^\d+$/.test(m[1]) ? Number(m[1]) : 1 }]
+	if ((m = s.match(/^the villain and each minion engaged with you get -(\d+) (ATK|SCH) while (?:attacking|scheming against) you this (?:phase|round)$/i)))
+		return [{ k: 'bonus', stat: m[2].toLowerCase() as 'atk', n: -Number(m[1]), who: 'villain' }, { k: 'bonus', stat: m[2].toLowerCase() as 'atk', n: -Number(m[1]), who: 'eachMinion' }]
+	if (/^\(?shuffle\.?\)?$/i.test(s)) return [{ k: 'noop' }]
+	// "Resolve the "Special" ability on the Setting environment", "Resolve The Hood's "Foul Play" ability"
+	if ((m = s.match(/^(?:then, )?resolve (?:the|its|their) ["“]special["”] abilit(?:y|ies)(?: on (.+?))?(?: in any order)?$/i)))
+		return [{ k: 'special', on: m[1] ?? 'this card', mine: /you control/i.test(m[1] ?? ''), one: /^1 /.test(m[1] ?? '') }]
+	if ((m = s.match(/^(?:each player must )?resolve (.+?)['’]s? ["“](.+?)["”] ability(?: in player order)?$/i)))
+		return [{ k: 'special', on: m[1], label: m[2], mine: false, one: true }]
+	if (/^(?:it|that enemy|the enemy) attacks (?:this card|.+?) instead$/i.test(s) && /this card|instead$/i.test(s)) return [{ k: 'redirectAttack' }]
+	if ((m = s.match(/^(.+?) \((shuffle the encounter deck|without looking)\)$/i))) {
+		const st = sentence(m[1], names, villainNames)
+		if (st) return st
+	}
+	if ((m = s.match(/^each (.+?) minions? attacks? the hero (?:it is|they are) engaged with$/i)) || (m = s.match(/^each (.+?) minion engaged with a hero attacks that hero$/i)))
+		return [{ k: 'traitAttack', trait: m[1], mine: false }]
+	if ((m = s.match(/^put an? (.+?) minion into play engaged with each player$/i)))
+		return [{ k: 'forEachPlayer', steps: [{ k: 'encSearch', what: m[1] + ' minion', then: 'engage', discard: true }] }]
+	if ((m = s.match(/^each player searches the encounter deck(?: and discard pile)? for (?:a copy of |an? )?(.+?) and puts it into play engaged with them$/i)))
+		return [{ k: 'forEachPlayer', steps: [{ k: 'encSearch', what: m[1], then: 'engage', discard: /discard pile/i.test(s) }] }]
+	if (/^change your form$/i.test(s)) return [{ k: 'flip' }]
+	{
+		const sp = spendOf(s)
+		if (sp) return [sp]
+	}
+	// ── during an enemy's attack or scheme: "he gets +2 ATK for this attack"
+	if ((m = s.match(/^(?!(?:choose to )?either )(?:he|she|it|they|the villain|this enemy|that enemy|the attacking enemy|.+?) gets \+(\d+|X) (ATK|SCH) (for each .+? )?for this (?:attack|activation|scheme)$/i))) {
+		const n: Num = m[3] ? { mul: m[1] === 'X' ? 1 : Number(m[1]), count: m[3].replace(/^for each /i, '').trim() } : m[1] === 'X' ? 'X' : Number(m[1])
+		return [{ k: 'attackPlus', n, stat: m[2].toLowerCase() as 'atk' }]
+	}
+	if ((m = s.match(/^(?!(?:choose to )?either )(?:he|she|it|.+?) gets \+(\d+) (ATK|SCH) for each (.+?) for this (?:attack|activation|scheme)$/i)))
+		return [{ k: 'attackPlus', n: { mul: Number(m[1]), count: m[3] }, stat: m[2].toLowerCase() as 'atk' }]
+	if (/^(?:discard this card after this attack|after this attack, discard this card)$/i.test(s)) return [{ k: 'discardAfterAttack' }]
+	if (/^do not deal any boost cards for (?:that|this) (?:attack|activation)$/i.test(s)) return [{ k: 'extraBoost', n: -9 }]
+	if ((m = s.match(/^(?:choose to )?either (.+?),? or (.+)$/i)) && !/^each player/i.test(s)) {
+		const a = sentence(m[1], names, villainNames)
+		const b = sentence(m[2], names, villainNames)
+		if (a && b) return [{ k: 'choose', options: [{ label: m[1], steps: a }, { label: m[2], steps: b }] }]
+	}
+	if ((m = s.match(/^remove (\d+) threat from each scheme(?: in play)?$/i))) return [{ k: 'thwart', n: Number(m[1]), from: 'eachScheme' }]
+	if ((m = s.match(/^remove (?:each|all) (?:\w+ )?counters? from (.+)$/i))) {
+		const w = whoOf(m[1], names)
+		if (w) return [{ k: 'counter', n: -99, who: w }]
+	}
+	if ((m = s.match(/^if there are (\d+)(?: or more)? (?:\w+ )?counters here, (.+)$/i))) {
+		const rest = m[2].replace(/^discard this card to (.+)$/i, 'discard this card. $1').replace(/ and (remove|discard|place|deal) /i, '. $1 ')
+		const st = rest.split(/\.\s+/).map((x) => sentence(x, names, villainNames))
+		if (st.every(Boolean)) return [{ k: 'ifCounters', n: Number(m[1]), steps: st.flat() as Step[] }]
+	}
+	if ((m = s.match(/^if that card does not belong to (?:the )?(.+?) encounter set, deal it to yourself as a facedown encounter card$/i))) return [{ k: 'dealThatUnlessSet', set: m[1] }]
+	if ((m = s.match(/^if you are in hero form, (.+)$/i))) {
+		const st = sentence(m[1].replace(/ after this activation$/i, ''), names, villainNames)
+		if (st) return [{ k: 'ifHero', steps: st }]
+	}
+	if (/^each minion activates against the player it is engaged with$/i.test(s)) return [{ k: 'minionsActivate' }]
+	if (/^put this (?:minion|card) into play engaged with you$/i.test(s)) return [{ k: 'engageSelf' }]
+	if (/^shuffle this card into your deck$/i.test(s)) return [{ k: 'shuffleOwnDeck' }]
+	if ((m = s.match(/^(?:after this activation ends, )?shuffle (.+?) into the encounter deck$/i)) && (/^this card$/i.test(m[1]) || names.includes(m[1]))) return [{ k: 'shuffleIn' }]
+	if ((m = s.match(/^make the following \d+ attacks in order:\s*(.+)$/i))) {
+		const parts = m[1].split(/\s*•\s*/).filter(Boolean).map((x) => sentence(x.replace(/\.$/, ''), names, villainNames))
+		if (parts.length && parts.every(Boolean)) return parts.flat() as Step[]
+	}
+	if ((m = s.match(/^choose one:\s*•\s*(.+)$/i))) {
+		const opts = m[1].split(/\s*•\s*/).map((o) => o.trim().replace(/\.$/, '')).filter(Boolean)
+		const st = opts.map((o) => sentence(o, names, villainNames))
+		if (st.every(Boolean)) return [{ k: 'choose', options: opts.map((o, i) => ({ label: o, steps: st[i]! })) }]
+	}
+	if ((m = s.match(/^(.+?), where X is equal to (double )?the villain's stage number$/i))) {
+		const st = sentence(m[1].replace(/\s*\(to a maximum of \w+\)/i, ''), names, villainNames)
+		if (st && st.length === 1 && 'n' in st[0]) {
+			;(st[0] as { n: Num }).n = { mul: m[2] ? 2 : 1, count: 'villain stage' }
+			return st
+		}
+	}
+	if ((m = s.match(/^(.+?) gets \+(\d+) (ATK|THW|DEF) until the end of the phase$/i))) {
+		const w = whoOf(m[1], names)
+		if (w) return [{ k: 'bonus', stat: m[3].toLowerCase() as 'atk', n: Number(m[2]), who: w }]
+	}
 	if (/^shuffle the encounter discard pile into the encounter deck$/i.test(s)) return [{ k: 'encReshuffle' }]
 	if ((m = s.match(/^place (\d+) acceleration tokens? on the main scheme$/i))) return [{ k: 'accel', n: Number(m[1]) }]
 	if ((m = s.match(/^defeat (a|an|that|target) (non-elite )?minion$/i))) return [{ k: 'defeat', who: m[1] === 'that' ? 'that' : 'minion' }]
@@ -334,7 +425,7 @@ function sentence(raw: string, names: string[], villainNames: string[]): Step[] 
 	if ((m = s.match(/^(?:then, )?at the end of this attack, discard (.+)$/i))) return [{ k: 'discardAfterAttack' }]
 	if (/^(?:place it here instead|then, if there is at least \d+ damage here, discard .+)$/i.test(s)) return [{ k: 'noop' }] // armour: handled by the damage rules
 	// ── things that need no action from the game
-	if (/^(this effect cannot be canceled|any player may trigger this ability|any player whose .* may trigger this ability|advance to stage \d+b|shuffle the encounter deck( if it was searched)?|\(?without looking\)?|support)$/i.test(s)) return [{ k: 'noop' }]
+	if (/^(this effect cannot be canceled|any player may trigger this ability|any player whose .* may trigger this ability|advanced? to stage \d+b|shuffle the encounter deck( if it was searched)?|\(?without looking\)?|support)$/i.test(s)) return [{ k: 'noop' }]
 	if (/^remove this card from the game( and the campaign pool)?$/i.test(s)) return [{ k: 'removeSelf' }]
 	if ((m = s.match(/^otherwise,?\s+(.+)$/i))) {
 		const st = sentence(m[1], names, villainNames)
@@ -502,8 +593,21 @@ function sentence(raw: string, names: string[], villainNames: string[]): Step[] 
 }
 
 /** Effect text (several sentences, "Choose:" bullets) → steps. Unread sentences become manual steps. */
+const RES: Record<string, string> = { energy: 'e', mental: 'm', physical: 'p', wild: 'w' }
+/** "Spend a [energy] resource", "Spend [physical][physical] resources" */
+function spendOf(cost: string): Step | null {
+	const m = cost.match(/^spend (?:an? |\d+ )?((?:\[(?:energy|mental|physical|wild)\]\s*)+) resources?\.?$/i)
+	if (!m) return null
+	const rs = [...m[1].matchAll(/\[(\w+)\]/g)].map((x) => RES[x[1].toLowerCase()])
+	return { k: 'spendRes', r: rs[0], n: rs.length }
+}
+
 export function effect(text: string, names: string[], villainNames: string[] = []): Step[] {
-	const t = text.trim()
+	// "- Exhaust the Milano." lines are bullets too; a text that starts with bullets is a choice
+	let t = text.trim().replace(/^\s*-\s?(?=[A-Z])/gm, '• ')
+	const seq = t.match(/^make the following \d+ attacks in order:\s*([\s\S]*)$/i)
+	if (seq) t = seq[1].replace(/•\s*/g, '')
+	if (/^•/.test(t)) t = 'Choose one:\n' + t
 	const choose = t.match(/^([\s\S]*?)choose(?: one)?:\s*\n?([\s\S]*)$/i)
 	if (choose && /•/.test(choose[2])) {
 		const before = effect(choose[1], names, villainNames)
@@ -514,7 +618,9 @@ export function effect(text: string, names: string[], villainNames: string[] = [
 			.map((o) => {
 				const ar = o.split('→')
 				if (ar.length > 1) {
-					const pre: Step[] = /^exhaust /i.test(ar[0].trim()) ? [{ k: 'exhaustHeroCost' }] : [{ k: 'manual', text: ar[0].trim() }]
+					const cost = ar[0].trim()
+					const sp = spendOf(cost)
+					const pre: Step[] = /^exhaust /i.test(cost) ? [{ k: 'exhaustHeroCost' }] : sp ? [sp] : [{ k: 'manual', text: cost }]
 					return { label: o.replace(/\.$/, ''), steps: [...pre, ...effect(ar.slice(1).join('→'), names, villainNames)] }
 				}
 				return { label: o.replace(/\.$/, ''), steps: effect(o, names, villainNames) }
@@ -531,6 +637,14 @@ export function effect(text: string, names: string[], villainNames: string[] = [
 		const st = sentence(p, names, villainNames)
 		// "If X, Y. Otherwise, Z." → Z is the "No" answer of the question about X
 		const prev = out[out.length - 1]
+		const already = p.match(/^if you (?:were|are) already (stunned|confused), (.+?) instead\.?$/i)
+		if (already && prev?.k === 'status' && prev.who === 'hero') {
+			const alt = sentence(already[2], names, villainNames)
+			if (alt) {
+				out[out.length - 1] = { k: 'statusOr', s: already[1].toLowerCase() === 'stunned' ? 'stun' : 'conf', alt }
+				continue
+			}
+		}
 		if (st && st.length === 1 && st[0].k === 'otherwise' && prev?.k === 'choose' && prev.options.length === 2 && prev.options[1].label === 'No' && !prev.options[1].steps.length) {
 			prev.options[1] = { label: 'No', steps: st[0].steps }
 			continue
@@ -623,12 +737,15 @@ export function parse(c: CardData, alterName?: string): Parsed {
 	const villainNames = [...NAMES.villains]
 	const out: Parsed = { keywords: {}, mods: [], abilities: [], notes: [] }
 	const lines: string[] = []
-	for (const l of strip(c.x ?? '')
+	// "Surge.<b>When Revealed</b>: …" — a new ability starts at a bold timing word, even on the same line
+	const raw = (c.x ?? '')
+		.replace(/<i>([^<]{2,40})<\/i>\s*[—–-]\s*(<b>Special<\/b>)\s*:/g, '$2: ⟦$1⟧ ').replace(/([.)])\s*(?=<b>[^<]*?(?:When Revealed|When Defeated|When Completed|Forced|Response|Interrupt|Action|Resource|Setup|Special|Boost)[^<]*<\/b>)/g, '$1\n')
+	for (const l of strip(raw)
 		.split('\n')
 		.map((l) => l.trim())
 		.filter(Boolean)) {
 		// bullet options belong to the line that says "Choose:"
-		if (/^•/.test(l) && lines.length) lines[lines.length - 1] += '\n' + l
+		if (/^(•|-\s?[A-Z])/.test(l) && lines.length) lines[lines.length - 1] += '\n' + l
 		else lines.push(l)
 	}
 	if (c.t === 'obligation' && !lines.some((l) => /^(when revealed|forced|action|hero action)/i.test(l))) {
@@ -653,7 +770,12 @@ export function parse(c: CardData, alterName?: string): Parsed {
 			const [, label, tag, rest] = head
 			let body = rest.trim()
 			const timing = tm[1]
-			const ab: Ability = { timing, form: tm[2], tag: tag?.trim(), cost: [], steps: [], text: (star ? '★ ' : '') + line }
+			const ab: Ability = { timing, form: tm[2], tag: tag?.trim(), cost: [], steps: [], text: (star ? '★ ' : '') + line.replace(/⟦(.+?)⟧\s*/, '') }
+			const lb = body.match(/^⟦(.+?)⟧\s*/)
+			if (lb) {
+				ab.label = lb[1]
+				body = body.slice(lb[0].length)
+			}
 			const rf = label.match(/\((hero|alter-ego)\)/i)
 			if (rf) ab.revealForm = rf[1].toLowerCase() === 'hero' ? 'hero' : 'alter'
 			const lim = body.match(/\(limit once per (round|phase)\.?\)/i)
@@ -671,7 +793,8 @@ export function parse(c: CardData, alterName?: string): Parsed {
 				}
 			}
 			const arrow = body.split('→')
-			if (arrow.length > 1) {
+			// an arrow inside a bullet is that option's cost, not the ability's
+			if (arrow.length > 1 && !/•|\n\s*-\s?[A-Z]/.test(arrow[0])) {
 				ab.cost = costs(arrow[0], names)
 				body = arrow.slice(1).join('→')
 			}

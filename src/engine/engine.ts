@@ -50,12 +50,20 @@ const log = (g: Game, t: string, p?: number) => {
 	if (g.log.length > 300) g.log.splice(0, g.log.length - 300)
 }
 const perHero = (g: Game, area: number) => g.areas[area].players.filter((p) => !g.players[p].out).length || 1
-const nval = (g: Game, n: number | 'X' | { per: number } | { mul: number; count: string }, area: number, x = 0, p = -1): number =>
-	typeof n === 'number' ? n : n === 'X' ? x : 'per' in n ? n.per * perHero(g, area) : n.mul * countOf(g, area, p, n.count)
+const nval = (g: Game, n: number | 'X' | { per: number } | { mul: number; count: string }, area: number, x = 0, p = -1, src = -1): number =>
+	typeof n === 'number' ? n : n === 'X' ? x : 'per' in n ? n.per * perHero(g, area) : n.mul * countOf(g, area, p, n.count, src)
 
 /** "for each Drone minion engaged with you", "for each upgrade you control", "for each Hydra enemy in play"… */
-export function countOf(g: Game, area: number, p: number, what: string): number {
+export function countOf(g: Game, area: number, p: number, what: string, src = -1): number {
 	const w = what.toLowerCase().replace(/^(a|an) /, '')
+	if (w === 'villain stage') return ({ I: 1, II: 2, III: 3, IV: 4 } as Record<string, number>)[String(card(I(g, g.areas[area].villain).code).stage ?? 'I').replace(/[AB]$/, '')] ?? (Number.parseInt(String(card(I(g, g.areas[area].villain).code).stage)) || 1)
+	const cm = w.match(/^(?:\w+ )?counters? (?:on|here)\s*(.*)$/)
+	if (cm) {
+		const t = cm[1].replace(/^the /, '')
+		const host = !t || /^(him|her|it|this card|here)$/.test(t) ? [src] : named(g, area, t)
+		return host.reduce((a, u) => a + (g.insts[u]?.ctr ?? 0), 0)
+	}
+	if (/^boost icons? on (?:the discarded card|that card)$/.test(w)) return 0
 	const mine = /engaged with you|you control|in your/i.test(w)
 	const m = w.match(/^(?:(.+?) )?(minion|enemy|enemies|villain|ally|allies|upgrade|support|character|side scheme|scheme|player|hero|card)s?\b/)
 	if (!m) return 0
@@ -576,6 +584,7 @@ function stepActivate(g: Game, j: Extract<Job, { k: 'activate' }>): boolean {
 			}
 		}
 		// attached / enemy abilities that trigger when it attacks ("When X attacks, give him 1 additional boost card")
+		const later: { steps: Step[]; src: number }[] = []
 		for (const src of [j.enemy, ...attachments(g, j.enemy).map((a) => a.uid)]) {
 			for (const ab of P(g, src).abilities)
 				if (/^forced/.test(ab.timing) && ab.trigger && /when .*(attacks|schemes|activates)/i.test(ab.trigger) && new RegExp(j.mode === 'attack' ? 'attack' : 'scheme', 'i').test(ab.trigger)) {
@@ -591,6 +600,8 @@ function stepActivate(g: Game, j: Extract<Job, { k: 'activate' }>): boolean {
 							}
 						} else if (st.k === 'attackGains') j.gains.push(st.kw)
 					}
+					const rest = ab.steps.filter((st) => st.k !== 'extraBoost' && st.k !== 'attackGains')
+					if (rest.length && !/webbed up/i.test(card(I(g, src).code).n)) later.push({ steps: rest, src })
 					if (/webbed up/i.test(card(I(g, src).code).n) && j.mode === 'attack') {
 						// "When attached enemy would attack, discard Webbed Up instead. Then, stun that enemy."
 						discard(g, src)
@@ -599,9 +610,10 @@ function stepActivate(g: Game, j: Extract<Job, { k: 'activate' }>): boolean {
 						log(g, `Webbed Up: ${ename}'s attack is cancelled and ${ename} is stunned.`)
 						return true
 					}
-					if (ab.steps.some((s) => s.k === 'manual')) ask(g, { who: j.target, kind: 'manual', card: src, text: `${card(I(g, src).code).n}`, lines: [ab.text] })
 				}
 		}
+		// the rest of those abilities ("he gets +2 ATK for this attack", choices…) resolve now, before defenders
+		for (const l of later.reverse()) pushSteps(g, l.steps, { area: j.area, player: j.target, src: l.src, that: j.enemy, attack: j.enemy })
 		if (j.mode === 'attack') {
 			log(g, `${ename} attacks ${heroName(g, j.target)}.`, j.target)
 			g.banner = `${ename} attacks!`
@@ -617,6 +629,7 @@ function stepActivate(g: Game, j: Extract<Job, { k: 'activate' }>): boolean {
 		if (j.mode === 'attack') {
 			const opts: number[] = []
 			const h = heroOf(g, j.target)
+			if (j.defender !== undefined) return false // already decided ("it attacks Helpful Bystander instead")
 			if (pl.form === 'hero' && !h.ex) opts.push(h.uid)
 			for (const a of allies(g, j.target)) if (!a.ex) opts.push(a.uid)
 			if (opts.length) ask(g, { who: j.target, kind: 'defend', attacker: j.enemy, options: opts, text: `${ename} attacks you (ATK ${stat(g, j.enemy, 'atk')} + boost). Defend?` })
@@ -662,11 +675,11 @@ function stepActivate(g: Game, j: Extract<Job, { k: 'activate' }>): boolean {
 		j.step = 4
 		const boost = (j as { boostTotal?: number }).boostTotal ?? 0
 		if (j.mode === 'scheme') {
-			const n = stat(g, j.enemy, 'sch') + boost
+			const n = Math.max(0, stat(g, j.enemy, 'sch') + boost + (j.plus ?? 0))
 			placeThreat(g, g.areas[j.area].main, n, { area: j.area, player: j.target, src: j.enemy })
 			log(g, `${ename} places ${n} threat on the main scheme.`, j.target)
 		} else {
-			let dmg = stat(g, j.enemy, 'atk') + boost
+			let dmg = Math.max(0, stat(g, j.enemy, 'atk') + boost + (j.plus ?? 0))
 			const d = j.defender
 			if (d && g.insts[d]) {
 				const di = I(g, d)
@@ -1157,9 +1170,9 @@ const crisis = (g: Game, area: number) => sides(g, area).some((s) => (card(s.cod
 const IN_PLAY: Zone[] = ['villain', 'engaged', 'side', 'main', 'env', 'attached', 'play', 'identity']
 /** Cards in play in this game area with this name (case-insensitive). */
 export function named(g: Game, area: number, name: string): number[] {
-	const n = name.toLowerCase()
+	const n = name.toLowerCase().replace(/^the /, '')
 	return Object.values(g.insts)
-		.filter((x) => x.area === area && IN_PLAY.includes(x.zone) && !x.facedown && card(x.code).n.toLowerCase() === n)
+		.filter((x) => x.area === area && IN_PLAY.includes(x.zone) && !x.facedown && card(x.code).n.toLowerCase().replace(/^the /, '') === n)
 		.map((x) => x.uid)
 }
 
@@ -1438,6 +1451,135 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 		}
 		case 'noop':
 			return next()
+		case 'attackPlus': {
+			const aj = [...g.jobs].reverse().find((x) => x.k === 'activate') as Extract<Job, { k: 'activate' }> | undefined
+			const n = nval(g, s.n, area, 0, p, src)
+			if (aj) {
+				aj.plus = (aj.plus ?? 0) + n
+				if (n) log(g, `${srcName}: ${nameOf(g, aj.enemy)} gets +${n} ${s.stat.toUpperCase()} for this ${s.stat === 'atk' ? 'attack' : 'scheme'}.`, p)
+			}
+			return next()
+		}
+		case 'ifCounters': {
+			j.i++
+			if ((g.insts[src]?.ctr ?? 0) >= s.n) pushSteps(g, s.steps, ctx)
+			return false
+		}
+		case 'ifHero': {
+			j.i++
+			if (g.players[p].form === 'hero') pushSteps(g, s.steps, ctx)
+			return false
+		}
+		case 'minionsActivate': {
+			j.i++
+			const ms = Object.values(g.insts).filter((x) => x.area === area && x.zone === 'engaged' && !g.players[x.ctrl]?.out)
+			for (const m of ms.reverse()) g.jobs.push(activation(g, area, m.uid, m.ctrl, g.players[m.ctrl].form === 'hero' ? 'attack' : 'scheme'))
+			return false
+		}
+		case 'engageSelf': {
+			const x = g.insts[src]
+			if (x) {
+				x.zone = 'engaged'
+				x.ctrl = p
+				if (kw(g, src, 'toughness')) x.tough = 1
+			}
+			return next()
+		}
+		case 'shuffleOwnDeck': {
+			const x = g.insts[src]
+			if (x && x.owner >= 0) {
+				moveTo(g, src, 'deck')
+				shuffle(g, g.players[x.owner].deck)
+			}
+			return next()
+		}
+		case 'spendRes': {
+			const pl = g.players[p]
+			let need = s.n
+			const fits = (r: string) => r === s.r || r === 'w'
+			const paid: string[] = []
+			for (let k = 0; k < pl.pool.length && need > 0; ) {
+				if (fits(pl.pool[k])) {
+					paid.push(pl.pool[k])
+					pl.pool = pl.pool.slice(0, k) + pl.pool.slice(k + 1)
+					need--
+				} else k++
+			}
+			const cands = pl.hand
+				.filter((u) => [...resourcesOf(g, u)].some(fits))
+				.sort((a, b) => (C(g, a).t === 'resource' ? 0 : 1) - (C(g, b).t === 'resource' ? 0 : 1) || resourcesOf(g, a).length - resourcesOf(g, b).length)
+			for (const u of cands) {
+				if (need <= 0) break
+				need -= [...resourcesOf(g, u)].filter(fits).length
+				moveTo(g, u, 'discard')
+				log(g, `${pl.name} spends ${nameOf(g, u)}.`, p)
+			}
+			ctx.did = need <= 0
+			if (need > 0) {
+				log(g, `${srcName}: not enough [${s.r}] resources, so the rest doesn't happen.`, p)
+				j.i = j.steps.length
+				return false
+			}
+			return next()
+		}
+		case 'redirectAttack': {
+			const aj = [...g.jobs].reverse().find((x) => x.k === 'activate') as Extract<Job, { k: 'activate' }> | undefined
+			if (aj && g.insts[src]?.zone === 'play') {
+				aj.defender = src
+				log(g, `${nameOf(g, aj.enemy)} attacks ${nameOf(g, src)} instead.`, p)
+			}
+			return next()
+		}
+		case 'statusOr': {
+			const h = g.players[p].ident
+			j.i++
+			if ((g.insts[h]?.[s.s] ?? 0) > 0) pushSteps(g, s.alt, ctx)
+			else setStatus(g, h, s.s)
+			return false
+		}
+		case 'special': {
+			const on = s.on.toLowerCase().replace(/^(the|each|1|a|an) /, '').replace(/ (?:you control|in play)$/, '')
+			let cards: number[]
+			if (/^(this card|it|its)$/.test(on)) cards = [src]
+			else {
+				const byName = named(g, area, on)
+				if (byName.length) cards = byName
+				else {
+					// "Setting environment", "Black Panther upgrade"
+					const m = on.match(/^(.+?) (environment|upgrade|support|attachment|side scheme|minion|card)s?$/)
+					const trait = (m?.[1] ?? on).toLowerCase()
+					const kind = m?.[2]?.replace(' ', '_')
+					cards = Object.values(g.insts)
+						.filter((x) => x.area === area && IN_PLAY.includes(x.zone) && (!s.mine || x.ctrl === p) && (!kind || kind === 'card' || card(x.code).t === kind) && ((card(x.code).tr ?? '').toLowerCase().includes(trait) || card(x.code).n.toLowerCase() === trait))
+						.map((x) => x.uid)
+				}
+			}
+			if (s.one) cards = cards.slice(0, 1)
+			j.i++
+			const label = s.label?.toLowerCase()
+			for (const u of [...cards].reverse()) {
+				const ab = P(g, u).abilities.filter((a) => a.timing === 'special' && (!label || a.label?.toLowerCase() === label))
+				for (const a of [...ab].reverse()) pushSteps(g, a.steps, { ...ctx, src: u })
+			}
+			if (!cards.length) log(g, `${srcName}: nothing to resolve.`, p)
+			return false
+		}
+		case 'dealThatUnlessSet': {
+			const u = ctx.that
+			const want = s.set.toLowerCase().replace(/^the /, '')
+			if (u !== undefined && g.insts[u]) {
+				const set = (C(g, u).st ?? '').toLowerCase().replace(/^the /, '').replace(/_/g, ' ')
+				if (!set.includes(want.replace(/^the /, ''))) {
+					const x = I(g, u)
+					moveTo(g, u, 'encDiscard')
+					g.areas[area].encDiscard = g.areas[area].encDiscard.filter((v) => v !== u)
+					x.zone = 'dealt'
+					x.ctrl = p
+					log(g, `${srcName}: ${nameOf(g, u)} is dealt to ${g.players[p].name} facedown.`, p)
+				}
+			}
+			return next()
+		}
 		case 'win':
 			g.areas[area].result = 'win'
 			log(g, `${srcName}: the players win!`)

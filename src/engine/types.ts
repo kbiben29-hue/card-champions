@@ -123,7 +123,7 @@ export interface Ctx {
 export type Job =
 	| { k: 'steps'; steps: Step[]; ctx: Ctx; i: number; pick?: number; picks?: number[] }
 	| { k: 'villainPhase'; area: number; step: number; who?: number }
-	| { k: 'activate'; area: number; enemy: number; target: number; mode: 'attack' | 'scheme'; step: number; boosts: number[]; extra: number; defender?: number; gains: string[]; prevent: number | 'all' | null; ctxSrc?: number }
+	| { k: 'activate'; area: number; enemy: number; target: number; mode: 'attack' | 'scheme'; step: number; boosts: number[]; extra: number; defender?: number; gains: string[]; prevent: number | 'all' | null; ctxSrc?: number; plus?: number }
 	| { k: 'reveal'; area: number; player: number; uid: number; step: number; fromDeck: boolean; surge?: boolean; cancelled?: boolean }
 	| { k: 'deal'; area: number }
 	| { k: 'endRound' }

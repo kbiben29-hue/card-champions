@@ -215,3 +215,42 @@ test('shield: the villain can\'t take damage this phase; "the players win the ga
 	assert.equal(g.phase, 'over')
 	assert.equal(g.winner, 'heroes')
 })
+
+test('attack-time text: "+2 ATK for this attack", Special abilities, spending a coloured resource', () => {
+	const kang = parse(card('11001')).abilities[0].steps[0]
+	assert.equal(kang.k, 'choose')
+	if (kang.k === 'choose') assert.deepEqual(kang.options[1].steps, [{ k: 'attackPlus', n: 2, stat: 'atk' }])
+	const slab = parse(card('40116')).abilities[0].steps
+	assert.deepEqual(slab[1], { k: 'attackPlus', n: { mul: 1, count: 'growth counter on him' }, stat: 'atk' })
+	const hood = parse(card('24001')).abilities[0]
+	assert.equal(hood.timing, 'special')
+	assert.equal(hood.label, 'Foul Play')
+	const kid = parse(card('49013')).abilities[0].steps[0]
+	assert.equal(kid.k, 'choose')
+	if (kid.k === 'choose') assert.deepEqual(kid.options[1].steps[0], { k: 'spendRes', r: 'm', n: 1 })
+
+	let g = ready(game())
+	const v = g.areas[0].villain
+	// the villain attacks with +2 ATK from an interrupt-style step; nobody defends
+	g.players[0].form = 'hero'
+	const before = g.insts[g.players[0].ident].dmg
+	g.jobs.push({ k: 'activate', area: 0, enemy: v, target: 0, mode: 'attack', step: 2, boosts: [], extra: 0, gains: [], prevent: null, plus: 2 })
+	g = resolveSteps(g, [], { area: 0, player: 0, src: v })
+	while (g.queue.length && g.queue[0].kind !== 'manual') g = apply(g, autoIntent(g)!)
+	assert.equal(g.insts[g.players[0].ident].dmg - before, stat(g, v, 'atk') + 2)
+
+	// spending a resource you don't have stops the rest of the effect
+	g = ready(game())
+	g.players[0].hand = g.players[0].hand.filter((u) => !card(g.insts[u].code).res?.includes('m') && !card(g.insts[u].code).res?.includes('w'))
+	const thr = g.insts[g.areas[0].main].thr
+	g = resolveSteps(g, [{ k: 'spendRes', r: 'm', n: 1 }, { k: 'threat', n: 3, on: 'main' }], { area: 0, player: 0, src: v })
+	assert.equal(g.insts[g.areas[0].main].thr, thr)
+})
+
+test('the villain\'s stage number and counters on a named card count for "X"', () => {
+	let g = ready(game())
+	const v = g.areas[0].villain
+	g.insts[v].dmg = 5
+	g = resolveSteps(g, [{ k: 'heal', n: { mul: 2, count: 'villain stage' }, who: 'villain' }], { area: 0, player: 0, src: v })
+	assert.equal(g.insts[v].dmg, 3) // Rhino I: heals 2
+})
