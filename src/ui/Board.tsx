@@ -788,7 +788,16 @@ export function Board({
 				{waiting}
 				{aimBox}
 			</div>
-			{myPrompt && hidePrompt && (
+			{myPrompt && hidePrompt && myPrompt.kind === 'manual' && (
+				<div className="manual-banner" role="status">
+					<b>Your move:</b> {myPrompt.card !== undefined && g.insts[myPrompt.card] ? nameOf(g, myPrompt.card) : 'card text'} — fix the table, then
+					<button className="primary" onClick={() => (send({ t: 'answer', player: me, value: 1 }), setHidePrompt(false))}>
+						Done
+					</button>
+					<button onClick={() => setHidePrompt(false)}>What was it?</button>
+				</div>
+			)}
+			{myPrompt && hidePrompt && myPrompt.kind !== 'manual' && (
 				<button className="show-prompt" onClick={() => setHidePrompt(false)}>
 					Show the question
 				</button>
@@ -1136,6 +1145,7 @@ function PromptBox({ g, p, me, marked, send, onHide }: { g: Game; p: Prompt; me:
 		}
 	})()
 	const rule = ruleForPrompt(p.kind, p.text)
+	if (p.kind === 'manual') return <ManualPop g={g} p={p} me={me} send={send} onHide={onHide} />
 	return (
 		<div className={`tray prompt k-${p.kind}`}>
 			<div className="tray-head">
@@ -1150,6 +1160,42 @@ function PromptBox({ g, p, me, marked, send, onHide }: { g: Game; p: Prompt; me:
 			{body}
 			{rule && <RuleNote r={rule} />}
 		</div>
+	)
+}
+
+/** "Your move!": the game can't do this card text by itself yet, so the player does it with the table tools. */
+function ManualPop({ g, p, me, send, onHide }: { g: Game; p: Extract<Prompt, { kind: 'manual' }>; me: number; send: Dispatch; onHide: () => void }) {
+	const c = p.card !== undefined && g.insts[p.card] ? g.insts[p.card] : undefined
+	const name = c ? nameOf(g, c.uid) : (p.text ?? '').split(':')[0]
+	return createPortal(
+		<div className="manual-pop-wrap" role="dialog" aria-modal="true" aria-label="Your move">
+			<div className="manual-pop">
+				<div className="mp-burst">YOUR MOVE!</div>
+				<div className="mp-body">
+					{c && <CardImg code={c.code} className="mp-card" />}
+					<div className="mp-text">
+						<p className="mp-lead">
+							The game can't do this part of <b>{name}</b> by itself yet. Please do it yourself:
+						</p>
+						<ol className="mp-lines">
+							{p.lines.map((l, k) => (
+								<li key={k}>{l.replace(/^★\s*/, '')}</li>
+							))}
+						</ol>
+						<p className="mp-how">
+							<b>How:</b> tap <b>Use the table</b>, then tap any card to change its damage, threat, status or where it is. Come back and tap <b>Done</b>. If it doesn't apply right now, just tap <b>Done</b>.
+						</p>
+					</div>
+				</div>
+				<div className="mp-acts">
+					<button className="primary" onClick={() => send({ t: 'answer', player: me, value: 1 })}>
+						Done
+					</button>
+					<button onClick={onHide}>Use the table</button>
+				</div>
+			</div>
+		</div>,
+		document.body,
 	)
 }
 

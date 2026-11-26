@@ -4273,3 +4273,166 @@ div.textcard.f-bas {
 	font-weight: 700;
 	box-shadow: 2px 2px 0 #000;
 }
+
+/* ───────── "Your move!" pop-up for card text the game can't do yet ───────── */
+.manual-pop-wrap {
+	position: fixed;
+	inset: 0;
+	z-index: 900;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: max(16px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom));
+	background: radial-gradient(circle at 50% 40%, rgba(255, 210, 63, 0.18), rgba(0, 0, 0, 0.72) 70%);
+	animation: mp-fade 0.18s ease-out;
+}
+.manual-pop {
+	position: relative;
+	width: min(560px, 100%);
+	max-height: 100%;
+	display: flex;
+	flex-direction: column;
+	background: #fffbea;
+	color: #111;
+	border: 4px solid #000;
+	border-radius: 10px;
+	box-shadow: 8px 9px 0 #000;
+	padding: 0 18px 16px;
+	transform: rotate(-0.6deg);
+	animation: mp-pop 0.32s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.mp-burst {
+	align-self: center;
+	margin: -30px 0 10px;
+	transform: rotate(-4deg);
+	font-family: 'Bangers', Impact, sans-serif;
+	font-size: 34px;
+	letter-spacing: 1.5px;
+	color: #000;
+	background: #ffd23f;
+	padding: 14px 34px;
+	clip-path: polygon(0% 22%, 9% 0%, 22% 14%, 36% 0%, 50% 12%, 64% 0%, 78% 14%, 91% 0%, 100% 22%, 94% 50%, 100% 78%, 91% 100%, 78% 86%, 64% 100%, 50% 88%, 36% 100%, 22% 86%, 9% 100%, 0% 78%, 6% 50%);
+	filter: drop-shadow(3px 3px 0 #000);
+	white-space: nowrap;
+}
+.mp-body {
+	display: flex;
+	gap: 14px;
+	align-items: flex-start;
+	overflow: auto;
+	min-height: 0;
+}
+.mp-card {
+	width: 128px;
+	flex: none;
+	border-radius: 8px;
+	border: 2px solid #000;
+	box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.6);
+}
+.mp-text {
+	flex: 1;
+	min-width: 0;
+	font-family: 'Comic Neue', 'Comic Sans MS', sans-serif;
+}
+.mp-lead {
+	margin: 0 0 8px;
+	font-size: 16px;
+}
+.mp-lines {
+	margin: 0 0 10px;
+	padding: 10px 12px 10px 30px;
+	background: #fff;
+	border: 2px solid #000;
+	border-left: 8px solid #e23636;
+	border-radius: 4px;
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.35;
+}
+.mp-lines li + li {
+	margin-top: 6px;
+}
+.mp-how {
+	margin: 0;
+	font-size: 14px;
+	color: #333;
+}
+.mp-acts {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	justify-content: center;
+	margin-top: 14px;
+	flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+	.mp-body {
+		flex-direction: column;
+		align-items: center;
+	}
+	.mp-card {
+		width: 110px;
+	}
+	.mp-burst {
+		font-size: 28px;
+	}
+}
+@keyframes mp-fade {
+	from {
+		opacity: 0;
+	}
+}
+@keyframes mp-pop {
+	0% {
+		transform: scale(0.6) rotate(-6deg);
+		opacity: 0;
+	}
+	100% {
+		transform: scale(1) rotate(-0.6deg);
+		opacity: 1;
+	}
+}
+.manual-banner {
+	position: fixed;
+	top: calc(env(safe-area-inset-top) + 56px);
+	left: 50%;
+	transform: translateX(-50%) rotate(-0.8deg);
+	z-index: 850;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	justify-content: center;
+	max-width: calc(100vw - 20px);
+	background: #ffd23f;
+	color: #000;
+	border: 3px solid #000;
+	border-radius: 8px;
+	box-shadow: 4px 5px 0 #000;
+	padding: 6px 10px;
+	font-family: 'Comic Neue', sans-serif;
+	font-size: 15px;
+	animation: mp-banner 1.6s ease-in-out infinite;
+}
+.manual-banner button {
+	padding: 4px 12px;
+	min-height: 0;
+}
+@keyframes mp-banner {
+	0%,
+	100% {
+		box-shadow: 4px 5px 0 #000;
+	}
+	50% {
+		box-shadow:
+			4px 5px 0 #000,
+			0 0 0 5px rgba(255, 210, 63, 0.45);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.manual-pop,
+	.manual-pop-wrap,
+	.manual-banner {
+		animation: none;
+	}
+}

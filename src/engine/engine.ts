@@ -1767,6 +1767,17 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 			for (const x of inZone(g, area, 'env')) if (x.uid !== src && (card(x.code).tr ?? '').toLowerCase().includes(tr)) discard(g, x.uid)
 			return next()
 		}
+		case 'addMilled': {
+			const pl = g.players[p]
+			const want = s.res ? { energy: 'e', mental: 'm', physical: 'p', wild: 'w' }[s.res] : undefined
+			for (const u of ctx.milled ?? []) {
+				if (!pl.discard.includes(u)) continue
+				if (want && !resourcesOf(g, u).includes(want)) continue
+				moveTo(g, u, 'hand')
+				log(g, `${srcName}: ${nameOf(g, u)} goes to ${pl.name}'s hand.`, p)
+			}
+			return next()
+		}
 		case 'later':
 			g.later = [...(g.later ?? []), { when: s.when === 'phase' && g.phase !== 'player' ? 'round' : s.when, steps: s.steps, ctx: { ...ctx } }]
 			return next()
@@ -2100,9 +2111,11 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 		}
 		case 'mill': {
 			const pl = g.players[p]
+			ctx.milled = []
 			for (let k = 0; k < s.n && pl.deck.length; k++) {
 				const u = pl.deck[0]
 				moveTo(g, u, 'discard')
+				ctx.milled.push(u)
 				ctx.that = u
 				log(g, `${srcName}: ${pl.name} discards ${nameOf(g, u)} from the top of their deck.`, p)
 			}

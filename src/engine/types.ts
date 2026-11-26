@@ -113,6 +113,8 @@ export interface Ctx {
 	player: number
 	src: number
 	that?: number
+	/** cards discarded from a deck by the last step */
+	milled?: number[]
 	/** the last step did something (for "If no …, this card gains surge") */
 	did?: boolean
 	/** for the encounter card being revealed */

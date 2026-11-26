@@ -68,6 +68,7 @@ export type Step =
 	| { k: 'fdBoost'; who: Who | 'thisEnemy'; n: number; discardSelf?: boolean }
 	| { k: 'pick'; who: Who }
 	| { k: 'putThat' }
+	| { k: 'addMilled'; res?: 'energy' | 'mental' | 'physical' | 'wild' }
 	| { k: 'clearStatus'; who: Who; s?: 'stun' | 'conf' | 'tough' }
 	| { k: 'discardEnvTrait'; trait: string }
 	| { k: 'encMill'; n: number; until?: string }
@@ -317,6 +318,7 @@ function sentence(raw: string, names: string[], villainNames: string[]): Step[] 
 	if ((m = s.match(/^each character (?:that player|you) controls? gets \+(\d+) (THW|ATK|DEF) and \+(\d+) (THW|ATK|DEF) until the end of the phase$/i)))
 		return [{ k: 'bonus', stat: m[2].toLowerCase() as 'atk', n: Number(m[1]), who: 'eachFriendly' }, { k: 'bonus', stat: m[4].toLowerCase() as 'atk', n: Number(m[3]), who: 'eachFriendly' }]
 	if (/^the players win the game$/i.test(s)) return [{ k: 'win' }]
+	if ((m = s.match(/^add each (?:card|one) (?:with a printed \[(energy|mental|physical|wild)\] resource )?discarded this way to your hand$/i))) return [{ k: 'addMilled', res: m[1]?.toLowerCase() as 'mental' }]
 	if ((m = s.match(/^discard each other (.+?) environment(?: in play)?$/i))) return [{ k: 'discardEnvTrait', trait: m[1] }]
 	if (/^discard your hand$/i.test(s)) return [{ k: 'discardHand', n: 99, random: true, each: false }]
 	if ((m = s.match(/^that (?:attack|event) deals (\d+) additional damage(?: to that enemy)?$/i))) return [{ k: 'dmg', n: Number(m[1]), to: 'that' }]

@@ -76,7 +76,10 @@ export default function App() {
 	const fit = useFit(wrapRef, !!session)
 	const g = session?.history[session.history.length - 1] ?? null
 
-	useEffect(() => writeSave(session), [session])
+	// keep the last game when you go back to the menu or close the page, so Continue can pick it up
+	useEffect(() => {
+		if (session) writeSave(session)
+	}, [session])
 
 	// hot-seat: follow whoever has to act; cover the screen when it changes hands in a competitive game
 	const lastActor = useRef<number | null>(null)
