@@ -1446,7 +1446,8 @@ small {
 .enemy-strip {
 	height: 54px;
 	display: flex;
-	gap: 14px;
+	gap: 10px;
+	font-size: 0.82rem !important;
 	align-items: center;
 	padding: 4px 14px;
 	background: linear-gradient(90deg, rgba(226, 59, 46, 0.35), rgba(226, 59, 46, 0.05));

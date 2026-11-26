@@ -570,7 +570,7 @@ function EnemyStrip({ g, area }: { g: Game; area: number }) {
 	const m = g.insts[ar.main]
 	return (
 		<div className="enemy-strip">
-			<b>{ar.side === 'registration' ? 'Registration' : 'Resistance'} team</b>
+			<b>{area === 0 ? 'Registration' : 'Resistance'}</b>
 			{ar.players.map((p) => {
 				const pl = g.players[p]
 				const h = g.insts[pl.ident]

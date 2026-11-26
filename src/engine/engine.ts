@@ -932,7 +932,8 @@ function checkState(g: Game) {
 			const w = g.areas.find((a) => a.result === 'win')
 			const l = g.areas.find((a) => a.result === 'lose')
 			g.phase = 'over'
-			const team = (a: Area) => (a.side === 'registration' ? 'Registration' : a.side === 'resistance' ? 'Resistance' : `Team ${a.id + 1}`)
+			// area 0 is the Registration team (it faces the Resistance leader), area 1 the Resistance team
+			const team = (a: Area) => (a.id === 0 ? 'Registration' : 'Resistance')
 			if (w) g.winner = team(w)
 			else if (l) g.winner = team(g.areas[1 - l.id])
 			g.banner = `${g.winner} wins!`
