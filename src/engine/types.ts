@@ -38,6 +38,8 @@ export interface Inst {
 	stun: number
 	conf: number
 	tough: number
+	/** facedown boost cards waiting for this enemy's next activation */
+	fdBoost?: number
 	host?: number
 	/** temporary stat bonuses until the end of the phase */
 	bonus?: { atk?: number; thw?: number; def?: number; sch?: number; shield?: number }

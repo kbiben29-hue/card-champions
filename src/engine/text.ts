@@ -3,7 +3,7 @@
 // player can resolve it with the table tools (the game never silently skips text).
 import type { CardData } from '../data/data'
 
-export type Num = number | 'X' | { per: number } | { mul: number; count: string } // per: n per player; mul: n for each <count>
+export type Num = number | 'X' | { per: number } | { mul: number; count: string } | { expr: string; mul?: number } // per: n per player; mul: n for each <count>
 
 export type Who =
 	| 'enemy'
@@ -64,7 +64,12 @@ export type Step =
 	| { k: 'removeSelf' }
 	| { k: 'exhaustHeroCost' }
 	| { k: 'counter'; n: number; who?: Who }
-	| { k: 'encSearch'; what: string; then: 'reveal' | 'play' | 'engage' | 'hand'; discard: boolean }
+	| { k: 'encSearch'; what: string; then: 'reveal' | 'play' | 'engage' | 'hand'; discard: boolean; host?: Who }
+	| { k: 'fdBoost'; who: Who | 'thisEnemy'; n: number; discardSelf?: boolean }
+	| { k: 'pick'; who: Who }
+	| { k: 'putThat' }
+	| { k: 'clearStatus'; who: Who; s?: 'stun' | 'conf' | 'tough' }
+	| { k: 'discardEnvTrait'; trait: string }
 	| { k: 'encMill'; n: number; until?: string }
 	| { k: 'deckMill'; n: number; each: boolean }
 	| { k: 'discardHand'; n: number; random: boolean; each: boolean }
@@ -312,6 +317,53 @@ function sentence(raw: string, names: string[], villainNames: string[]): Step[] 
 	if ((m = s.match(/^each character (?:that player|you) controls? gets \+(\d+) (THW|ATK|DEF) and \+(\d+) (THW|ATK|DEF) until the end of the phase$/i)))
 		return [{ k: 'bonus', stat: m[2].toLowerCase() as 'atk', n: Number(m[1]), who: 'eachFriendly' }, { k: 'bonus', stat: m[4].toLowerCase() as 'atk', n: Number(m[3]), who: 'eachFriendly' }]
 	if (/^the players win the game$/i.test(s)) return [{ k: 'win' }]
+	if ((m = s.match(/^discard each other (.+?) environment(?: in play)?$/i))) return [{ k: 'discardEnvTrait', trait: m[1] }]
+	if (/^discard your hand$/i.test(s)) return [{ k: 'discardHand', n: 99, random: true, each: false }]
+	if ((m = s.match(/^that (?:attack|event) deals (\d+) additional damage(?: to that enemy)?$/i))) return [{ k: 'dmg', n: Number(m[1]), to: 'that' }]
+	if ((m = s.match(/^that (?:thwart|event) removes (\d+) additional threat(?: from that scheme)?$/i))) return [{ k: 'thwart', n: Number(m[1]), from: 'that' }]
+	if ((m = s.match(/^(?:that|the attacking) enemy gets -(\d+) ATK for (?:that|this|the) attack$/i))) return [{ k: 'attackPlus', n: -Number(m[1]), stat: 'atk' }]
+	if ((m = s.match(/^(?:that|the|this) attack gains (\w+)(?:,? and (\w+))?(?:,? and (\w+))?$/i)) || (m = s.match(/^(?:that|the|this) attack gains (\w+), (\w+),? and (\w+)$/i))) {
+		const kws = [m[1], m[2], m[3]].filter(Boolean).map((x) => x.toLowerCase())
+		if (kws.every((x) => ['overkill', 'piercing', 'ranged'].includes(x))) return kws.map((kw) => ({ k: 'attackGains', kw }) as Step)
+	}
+	if (/^you are stunned and confused$/i.test(s)) return [{ k: 'status', s: 'stun', who: 'hero' }, { k: 'status', s: 'conf', who: 'hero' }]
+	if (/^(?:that|the chosen) (?:enemy|minion|villain) attacks you$/i.test(s)) return [{ k: 'enemyAttacks', who: 'that' }]
+	if (/^put (?:that|the chosen) (?:ally|card|upgrade|support) into play(?: under your control)?$/i.test(s)) return [{ k: 'putThat' }]
+	if (/^place this card in the [\w -]+ discard pile$/i.test(s)) return [{ k: 'discardSelf' }]
+	if ((m = s.match(/^discard (?:a|an|1|one) (stun|confused?|tough|stun or confuse)?\s*status cards? from (your hero|your identity|.+)$/i))) {
+		const w = whoOf(m[2], names)
+		if (w) return [{ k: 'clearStatus', who: w, s: !m[1] || /or/i.test(m[1]) ? undefined : (m[1].toLowerCase().startsWith('conf') ? 'conf' : (m[1].toLowerCase() as 'stun')) }]
+	}
+	// facedown boost cards wait for that enemy's next activation
+	if ((m = s.match(/^give (.+?) (\d+|a|an|one) facedown boost cards?$/i))) {
+		const t = m[1].toLowerCase()
+		const w = /^(him|her|the villain|the active villain|attached villain|the enemy leader)$/.test(t) || villainNames.some((v) => v.toLowerCase() === t) ? 'villain' : /^(this enemy|this minion|it)$/.test(t) ? 'thisEnemy' : whoOf(m[1], names)
+		if (w) return [{ k: 'fdBoost', who: w, n: /^\d+$/.test(m[2]) ? Number(m[2]) : 1 }]
+	}
+	if ((m = s.match(/^give this card to (.+?) as a facedown boost card$/i))) {
+		const t = m[1].toLowerCase()
+		const w = /^(the villain|the enemy leader|him|her)$/.test(t) || villainNames.some((v) => v.toLowerCase() === t) ? 'villain' : whoOf(m[1], names)
+		if (w) return [{ k: 'fdBoost', who: w, n: 1, discardSelf: true }]
+	}
+	if ((m = s.match(/^give (?:this enemy|him|her|it|the villain|name|.+?) (\d+|an?|another|one) (?:more|additional|extra)? ?boost cards?(?: (?:for this|this) activation)?$/i)) && !/facedown/i.test(s))
+		return [{ k: 'extraBoost', n: /^\d+$/.test(m[1]) ? Number(m[1]) : 1 }]
+	if ((m = s.match(/^choose (an enemy|a minion|a hero|a character|a scheme|a side scheme|an ally|a friendly character|an identity)$/i))) {
+		const w = whoOf(m[1], names)
+		if (w) return [{ k: 'pick', who: w }]
+	}
+	if ((m = s.match(/^give (.+?) and (.+?) (?:each )?a tough status card$/i))) {
+		const a = whoOf(m[1], names) ?? (villainNames.some((v) => v.toLowerCase() === m![1].toLowerCase()) ? 'villain' : null)
+		const b = whoOf(m[2], names) ?? (villainNames.some((v) => v.toLowerCase() === m![2].toLowerCase()) ? 'villain' : null)
+		if (a && b) return [{ k: 'status', s: 'tough', who: a }, { k: 'status', s: 'tough', who: b }]
+	}
+	if ((m = s.match(/^give up to (\d+) (?:friendly |different )?characters (?:each )?a tough status card$/i))) return Array.from({ length: Number(m[1]) }, () => ({ k: 'status', s: 'tough', who: 'character' }) as Step)
+	if ((m = s.match(/^(?:otherwise, )?find (?:the )?(.+?) (?:and|then) (reveal it|put it into play(?: engaged with you)?)$/i)))
+		if (!/^it$/i.test(m[1])) return [{ k: 'encSearch', what: m[1], then: /reveal/i.test(m[2]) ? 'reveal' : /engaged/i.test(m[2]) ? 'engage' : 'play', discard: true }]
+	if ((m = s.match(/^attach (?:the )?(.+?) to (.+)$/i)) && NAMES.cards.has(m[1].toLowerCase()) && !/^(this card|it)$/i.test(m[1])) {
+		const t = m[2].toLowerCase()
+		const host = /^(the villain|him|her|it)$/.test(t) || villainNames.some((v) => v.toLowerCase() === t) ? 'villain' : whoOf(m[2], names)
+		if (host) return [{ k: 'encSearch', what: m[1], then: 'play', discard: true, host }]
+	}
 	if ((m = s.match(/^give (?:him|her|it|the villain|this enemy|that enemy) (\d+|an) additional boost cards? for (?:that|this) (?:activation|attack)$/i))) return [{ k: 'extraBoost', n: /^\d+$/.test(m[1]) ? Number(m[1]) : 1 }]
 	if ((m = s.match(/^the villain and each minion engaged with you get -(\d+) (ATK|SCH) while (?:attacking|scheming against) you this (?:phase|round)$/i)))
 		return [{ k: 'bonus', stat: m[2].toLowerCase() as 'atk', n: -Number(m[1]), who: 'villain' }, { k: 'bonus', stat: m[2].toLowerCase() as 'atk', n: -Number(m[1]), who: 'eachMinion' }]
@@ -678,6 +730,24 @@ function fallback(s: string, names: string[], villainNames: string[]): Step[] | 
 			for (const [n, st] of [[m[2], m[3]], [m[4], m[5]], [m[6], m[7]]]) if (n) out.push({ k: 'bonus', stat: st.toLowerCase() as 'atk', n: Number(n), who: w })
 			return out
 		}
+	}
+	// "deal damage to an enemy equal to your ATK", "…, where X is the amount of threat on Bomb Scare"
+	const withX = (base: string, expr: string): Step[] | null => {
+		const st = sentence(base, names, villainNames)
+		if (!st) return null
+		const fix = (x: Step[]): Step[] => x.map((y) => ('n' in y && (y as { n: unknown }).n === 'X' ? ({ ...y, n: { expr } } as Step) : y))
+		const out = fix(st)
+		return JSON.stringify(out).includes('"expr"') ? out : null
+	}
+	if ((m = s.match(/^(.+?),? where X is (?:equal to )?(.+)$/i))) {
+		const t = withX(m[1].replace(/\s*\(to a maximum of [^)]*\)/i, ''), m[2])
+		if (t) return t
+	}
+	if ((m = s.match(/^(deal|remove|heal|place|take|draw|discard) (damage|threat|cards?|indirect damage)\s*(.*?) equal to (.+)$/i))) {
+		const rest = m[3].trim()
+		const base = `${m[1]} X ${m[2]}${rest ? ' ' + rest : ''}`
+		const t = withX(base, m[4])
+		if (t) return t
 	}
 	// "A, then B" / "A and B" / "A; B"
 	const splits = [/,? then,? /i, /; /, new RegExp(`,? and (?=(?:${VERBS}) )`, 'i'), new RegExp(`, (?=(?:${VERBS}) )`, 'i')]

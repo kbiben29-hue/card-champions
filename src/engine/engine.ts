@@ -50,8 +50,56 @@ const log = (g: Game, t: string, p?: number) => {
 	if (g.log.length > 300) g.log.splice(0, g.log.length - 300)
 }
 const perHero = (g: Game, area: number) => g.areas[area].players.filter((p) => !g.players[p].out).length || 1
-const nval = (g: Game, n: number | 'X' | { per: number } | { mul: number; count: string }, area: number, x = 0, p = -1, src = -1): number =>
-	typeof n === 'number' ? n : n === 'X' ? x : 'per' in n ? n.per * perHero(g, area) : n.mul * countOf(g, area, p, n.count, src)
+type NumV = number | 'X' | { per: number } | { mul: number; count: string } | { expr: string; mul?: number }
+const nval = (g: Game, n: NumV, area: number, x = 0, p = -1, src = -1, that?: number): number =>
+	typeof n === 'number'
+		? n
+		: n === 'X'
+			? x
+			: 'per' in n
+				? n.per * perHero(g, area)
+				: 'expr' in n
+					? (n.mul ?? 1) * evalExpr(g, area, p, src, that, n.expr)
+					: n.mul * countOf(g, area, p, n.count, src)
+
+/** "your hero's ATK", "that card's printed cost", "the number of boost icons on that card", "the amount of threat on Bomb Scare" */
+export function evalExpr(g: Game, area: number, p: number, src: number, that: number | undefined, expr: string): number {
+	let e = expr.toLowerCase().replace(/\s*\(\[\w+\]\)/g, '').replace(/\.$/, '').trim()
+	let mul = 1
+	if (e.startsWith('double ')) {
+		mul = 2
+		e = e.slice(7)
+	}
+	if (e.startsWith('half ')) e = e.slice(5)
+	const pl = p >= 0 ? g.players[p] : undefined
+	const ident = pl?.ident
+	const statOf = (u: number | undefined, st: string) => (u !== undefined && g.insts[u] ? stat(g, u, st as 'atk') : 0)
+	let m: RegExpMatchArray | null
+	const r = ((): number => {
+		if ((m = e.match(/^(?:your|your hero's|your identity's|your alter-ego's) (atk|thw|def|rec)(?: for that attack)?$/))) return statOf(ident, m[1])
+		if ((m = e.match(/^(?:that|the attacking|the defending|the chosen|the attacked) (?:enemy|minion|character|ally|villain)'s (atk|thw|def|sch|rec)$/))) return statOf(that, m[1])
+		if ((m = e.match(/^(?:the )?(?:printed )?(?:resource )?cost of (?:that|the discarded|this) card$/)) || (m = e.match(/^(?:that|its|the discarded|this) (?:card|event|ally|upgrade|support|minion)?'?s? ?(?:printed )?(?:resource )?cost$/)))
+			return that !== undefined && g.insts[that] ? (C(g, that).cost ?? 0) : 0
+		if (/^the number of boost icons (?:on (?:that|the discarded|this) card|discarded this way)$/.test(e)) return that !== undefined && g.insts[that] ? (C(g, that).boost ?? 0) : 0
+		if (/^the number of (?:printed )?resources on (?:it|that card|the discarded card)$/.test(e)) return that !== undefined && g.insts[that] ? resourcesOf(g, that).length : 0
+		if (/^the number of cards in your hand$/.test(e)) return pl?.hand.length ?? 0
+		if (/^the (?:amount|number) of damage (?:on|dealt to) your (?:hero|identity)$/.test(e) || /^the amount of damage you have sustained$/.test(e)) return ident !== undefined ? g.insts[ident].dmg : 0
+		if ((m = e.match(/^the (?:amount|number) of threat on (.+)$/))) {
+			const t = m[1].replace(/^the /, '')
+			const us = /^(this scheme|this card|here|it)$/.test(t) ? [src] : t === 'main scheme' ? [g.areas[area].main] : named(g, area, t)
+			return us.reduce((a, u) => a + (g.insts[u]?.thr ?? 0), 0)
+		}
+		if ((m = e.match(/^(.+?)'s? (atk|thw|def|sch)$/))) {
+			const t = m[1].replace(/^the /, '')
+			const us = t === 'villain' ? [g.areas[area].villain] : named(g, area, t)
+			return statOf(us[0], m[2])
+		}
+		if ((m = e.match(/^the number of (.+)$/))) return countOf(g, area, p, m[1].replace(/ in play$/, ''), src)
+		if (e === "the villain's stage number") return countOf(g, area, p, 'villain stage', src)
+		return 0
+	})()
+	return r * mul
+}
 
 /** "for each Drone minion engaged with you", "for each upgrade you control", "for each Hydra enemy in play"… */
 export function countOf(g: Game, area: number, p: number, what: string, src = -1): number {
@@ -644,7 +692,8 @@ function stepActivate(g: Game, j: Extract<Job, { k: 'activate' }>): boolean {
 		}
 		j.step = 1
 		// boost cards: the villain always; minions only with Villainous
-		const nb = (isVillain || kw(g, j.enemy, 'villainous') ? 1 : 0) + j.extra
+		const nb = Math.max(0, (isVillain || kw(g, j.enemy, 'villainous') ? 1 : 0) + j.extra + (e.fdBoost ?? 0))
+		e.fdBoost = 0
 		for (let k = 0; k < nb; k++) {
 			const b = drawEncounter(g, j.area)
 			if (b !== null) {
@@ -1336,7 +1385,7 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 		case 'dmg': {
 			const t = refs(s.to)
 			if (!t) return false
-			const n = nval(g, s.n, area, stat(g, g.players[p].ident, 'atk'), p)
+			const n = nval(g, s.n, area, stat(g, g.players[p].ident, 'atk'), p, src, ctx.that)
 			let any = 0
 			for (const u of t) {
 				any += damage(g, u, n, ctx)
@@ -1349,7 +1398,7 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 		case 'thwart': {
 			const t = refs(s.from)
 			if (!t) return false
-			const n = nval(g, s.n, area, stat(g, g.players[p].ident, 'thw'), p)
+			const n = nval(g, s.n, area, stat(g, g.players[p].ident, 'thw'), p, src, ctx.that)
 			let any = 0
 			for (const u of t) any += removeThreat(g, u, n, ctx)
 			if (t.length) log(g, `${srcName}: removes ${n} threat from ${t.map((u) => (g.insts[u] ? nameOf(g, u) : 'a scheme')).join(', ')}.`, p)
@@ -1359,13 +1408,13 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 		case 'threat': {
 			const t = refs(s.on)
 			if (!t) return false
-			const n = nval(g, s.n, area, 0, p)
+			const n = nval(g, s.n, area, 0, p, src, ctx.that)
 			for (const u of t) placeThreat(g, u, n, ctx)
 			ctx.did = t.length > 0
 			return next()
 		}
 		case 'draw': {
-			const n = nval(g, s.n, area, 0, p)
+			const n = nval(g, s.n, area, 0, p, src, ctx.that)
 			const who = s.each ? g.areas[area].players.filter((q) => !g.players[q].out) : [p]
 			for (const q of who) draw(g, q, n)
 			log(g, `${srcName}: draw ${n}.`, p)
@@ -1376,7 +1425,7 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 			const t = refs(s.who)
 			if (!t) return false
 			let any = 0
-			for (const u of t) any += heal(g, u, s.n === 'all' ? 'all' : nval(g, s.n, area, 0, p))
+			for (const u of t) any += heal(g, u, s.n === 'all' ? 'all' : nval(g, s.n, area, 0, p, src, ctx.that))
 			if (t.length) log(g, `${srcName}: heals ${any} damage from ${t.map((u) => nameOf(g, u)).join(', ')}.`, p)
 			ctx.did = any > 0
 			return next()
@@ -1537,7 +1586,7 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 			return next()
 		case 'attackPlus': {
 			const aj = [...g.jobs].reverse().find((x) => x.k === 'activate') as Extract<Job, { k: 'activate' }> | undefined
-			const n = nval(g, s.n, area, 0, p, src)
+			const n = nval(g, s.n, area, 0, p, src, ctx.that)
 			if (aj) {
 				aj.plus = (aj.plus ?? 0) + n
 				if (n) log(g, `${srcName}: ${nameOf(g, aj.enemy)} gets +${n} ${s.stat.toUpperCase()} for this ${s.stat === 'atk' ? 'attack' : 'scheme'}.`, p)
@@ -1683,6 +1732,40 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 			}
 			for (const k of rows.reverse()) pushSteps(g, s.rows[k].steps, ctx)
 			return false
+		}
+		case 'fdBoost': {
+			const t = s.who === 'thisEnemy' ? [src] : (refs(s.who) ?? [])
+			for (const u of t) if (g.insts[u]) g.insts[u].fdBoost = (g.insts[u].fdBoost ?? 0) + s.n
+			if (s.discardSelf && g.insts[src]) discard(g, src)
+			if (t.length) log(g, `${srcName}: ${t.map((u) => nameOf(g, u)).join(', ')} get${t.length > 1 ? '' : 's'} ${s.n} facedown boost card${s.n > 1 ? 's' : ''} for the next activation.`, p)
+			return next()
+		}
+		case 'pick': {
+			const t = refs(s.who)
+			if (!t) return false
+			ctx.that = t[0]
+			return next()
+		}
+		case 'putThat': {
+			const u = ctx.that
+			if (u !== undefined && g.insts[u] && g.insts[u].owner >= 0) putIntoPlay(g, u, p)
+			return next()
+		}
+		case 'clearStatus': {
+			const t = refs(s.who)
+			if (!t) return false
+			for (const u of t) {
+				const x = g.insts[u]
+				if (!x) continue
+				const which = s.s ?? (x.stun ? 'stun' : x.conf ? 'conf' : 'tough')
+				if (x[which] > 0) x[which]--
+			}
+			return next()
+		}
+		case 'discardEnvTrait': {
+			const tr = s.trait.toLowerCase()
+			for (const x of inZone(g, area, 'env')) if (x.uid !== src && (card(x.code).tr ?? '').toLowerCase().includes(tr)) discard(g, x.uid)
+			return next()
 		}
 		case 'later':
 			g.later = [...(g.later ?? []), { when: s.when === 'phase' && g.phase !== 'player' ? 'round' : s.when, steps: s.steps, ctx: { ...ctx } }]
@@ -1870,7 +1953,8 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 					x.thr = (c.bt ?? 0) * (has(c, 'btF') ? 1 : perHero(g, area))
 				} else if (c.t === 'attachment') {
 					x.zone = 'attached'
-					x.host = attachHost(g, area, parse(c).attach) ?? ar.villain
+					const h = s.host ? (fixedTargets(g, s.host, ctx) ?? [])[0] : undefined
+					x.host = h ?? attachHost(g, area, parse(c).attach) ?? ar.villain
 				} else if (c.t === 'environment') x.zone = 'env'
 				else {
 					x.zone = 'dealt'
