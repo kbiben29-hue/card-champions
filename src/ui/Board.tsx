@@ -57,6 +57,7 @@ export function Board({
 	netBadge,
 	pocket = false,
 	tall = false,
+	portrait = false,
 }: {
 	g: Game
 	viewer: number
@@ -69,6 +70,7 @@ export function Board({
 	netBadge?: React.ReactNode
 	pocket?: boolean
 	tall?: boolean
+	portrait?: boolean
 }) {
 	const [sel, setSel] = useState<number | null>(null)
 	const [aim, setAim] = useState<Aim | null>(null)
@@ -251,10 +253,18 @@ export function Board({
 
 	const playable = (u: number) => myTurn && !playProblem(g, me, u)
 
+	const dealt = Object.values(g.insts).filter((x) => x.zone === 'dealt' && x.ctrl === me)
+	const attachedElsewhere = Object.values(g.insts).filter((x) => x.zone === 'play' && x.ctrl === me && x.host !== undefined && g.insts[x.host] && g.insts[x.host].zone !== 'play')
+	const villainCard = villain ? card(villain.code) : null
 	const table = (
-		<div className={`felt ${layout}`}>
-			{g.mode === 'pvp' && <EnemyStrip g={g} area={1 - area} />}
-			<div className="band villain-band">
+		<div className={`felt page ${layout} ${others.length ? 'with-team' : ''}`}>
+			{g.mode === 'pvp' && (
+				<section className="cpanel p-enemy">
+					<EnemyStrip g={g} area={1 - area} />
+				</section>
+			)}
+			<section className="cpanel p-villain">
+				<Caption>{villainCard ? `${villainCard.n}${villainCard.stage ? ` · ${villainCard.stage}` : ''}` : 'The villain'}</Caption>
 				<div className="villain-slot">
 					{villain && (
 						<>
@@ -272,20 +282,26 @@ export function Board({
 						</>
 					)}
 				</div>
+			</section>
+			<section className="cpanel p-scheme">
+				<Caption>The scheme</Caption>
 				<div className="scheme-slot">
 					{main && tile(main, { size: 'land' })}
 					<div className="side-row">{sides(g, area).map((s) => tile(s, { size: 'land-s' }))}</div>
 				</div>
+			</section>
+			<section className="cpanel p-enc">
+				<Caption>Encounter</Caption>
 				<div className="env-slot">
 					{inZone(g, area, 'env').map((x) => tile(x, { size: 's' }))}
 					<div className="piles">
-						<Pile label="Encounter" n={enc} back />
+						<Pile label="Deck" n={enc} back />
 						<Pile label="Discard" n={ar.encDiscard.length} code={encTop !== undefined ? g.insts[encTop]?.code : undefined} />
 					</div>
 				</div>
-			</div>
-			<div className="band minion-band">
-				<div className="band-label">Engaged with {pl.name}</div>
+			</section>
+			<section className="cpanel p-minions">
+				<Caption>Engaged with {formCard(g, me).n}</Caption>
 				<div className="minion-row">
 					{engaged(g, me).map((m) => (
 						<div className="with-attach" key={m.uid}>
@@ -293,32 +309,37 @@ export function Board({
 							{attachments(g, m.uid).map((a) => tile(a, { size: 's' }))}
 						</div>
 					))}
-					{Object.values(g.insts)
-						.filter((x) => x.zone === 'dealt' && x.ctrl === me)
-						.map((x) => (
-							<div key={x.uid} className="facedown" title="Encounter card dealt to you">
-								?
-							</div>
-						))}
-					{!engaged(g, me).length && <div className="empty">No minions</div>}
+					{dealt.map((x) => (
+						<div key={x.uid} className="facedown" title="Encounter card dealt to you">
+							?
+						</div>
+					))}
+					{!engaged(g, me).length && !dealt.length && <div className="empty">No minions — all clear!</div>}
 				</div>
-				{others.length > 0 && (
+			</section>
+			{others.length > 0 && (
+				<section className="cpanel p-team">
+					<Caption>The team</Caption>
 					<div className="others">
 						{others.map((p) => (
 							<OtherHero key={p} g={g} p={p} onView={() => setViewer(p)} active={g.active === p} />
 						))}
 					</div>
-				)}
-			</div>
-			<div className="band mat-band">
+				</section>
+			)}
+			<section className={`cpanel p-hero ${pl.form}`}>
+				<Caption>{pl.form === 'hero' ? 'Hero form' : 'Alter-ego form'}</Caption>
 				<div className="ident-slot">
 					{tile(g.insts[pl.ident], { size: 'v', mine: true })}
 					<div className="ident-info">
 						<b>{formCard(g, me).n}</b>
-						<span>{pl.form === 'hero' ? 'Hero form' : 'Alter-ego form'}</span>
+						<span>{pl.name}</span>
 						{pl.pool && <span className="pool">Resources ready: {pl.pool.length}</span>}
 					</div>
 				</div>
+			</section>
+			<section className="cpanel p-play">
+				<Caption>In play</Caption>
 				<div className="play-row">
 					{playArea(g, me).map((x) => (
 						<div className="with-attach" key={x.uid}>
@@ -326,42 +347,49 @@ export function Board({
 							{attachments(g, x.uid).map((a) => tile(a, { size: 's' }))}
 						</div>
 					))}
-					{Object.values(g.insts)
-						.filter((x) => x.zone === 'play' && x.ctrl === me && x.host !== undefined && g.insts[x.host] && g.insts[x.host].zone !== 'play')
-						.map((x) => (
-							<div className="attached-note" key={x.uid}>
-								{tile(x, { size: 's', mine: true })}
-								<small>on {nameOf(g, x.host!)}</small>
-							</div>
-						))}
-					{!playArea(g, me).length && <div className="empty">Drag cards from your hand here</div>}
+					{attachedElsewhere.map((x) => (
+						<div className="attached-note" key={x.uid}>
+							{tile(x, { size: 's', mine: true })}
+							<small>on {nameOf(g, x.host!)}</small>
+						</div>
+					))}
+					{!playArea(g, me).length && !attachedElsewhere.length && <div className="empty">Drag cards from your hand up here</div>}
 				</div>
+			</section>
+			<section className="cpanel p-deck">
+				<Caption>Your deck</Caption>
 				<div className="piles mine">
 					<Pile label="Deck" n={pl.deck.length} back />
 					<Pile label="Discard" n={pl.discard.length} code={pl.discard.length ? g.insts[pl.discard[pl.discard.length - 1]].code : undefined} />
 				</div>
-			</div>
-			<div className="hand" data-anchor="hand">
-				{pl.hand.map((u, k) => {
-					const n = pl.hand.length
-					const mid = (n - 1) / 2
-					const rot = (k - mid) * Math.min(5, 26 / Math.max(1, n))
-					const lift = Math.abs(k - mid) * Math.abs(k - mid) * 1.6
-					return (
-						<div
-							key={u}
-							data-uid={u}
-							className={`hand-card ${playable(u) ? 'playable' : ''} ${sel === u ? 'selected' : ''} ${marked.includes(u) ? 'marked' : ''} ${glow.has(u) ? 'glow' : ''}`}
-							style={{ transform: `translateY(${lift}px) rotate(${rot}deg)`, zIndex: sel === u ? 50 : k }}
-							{...dragProps(u, true)}
-						>
-							<CardImg code={g.insts[u].code} />
-							{(card(g.insts[u].code).res?.length ?? 0) > 0 && <span className="res-count">{card(g.insts[u].code).res!.length}</span>}
-						</div>
-					)
-				})}
-				{!pl.hand.length && <div className="empty">No cards in hand</div>}
-			</div>
+			</section>
+			<section className="cpanel p-hand">
+				<Caption>
+					Your hand · {pl.hand.length}
+					{myTurn ? ' · glowing cards can be played' : ''}
+				</Caption>
+				<div className="hand" data-anchor="hand" style={{ ['--n' as string]: Math.max(1, pl.hand.length) }}>
+					{pl.hand.map((u, k) => {
+						const n = pl.hand.length
+						const mid = (n - 1) / 2
+						const rot = (k - mid) * Math.min(portrait ? 2.5 : 4, 22 / Math.max(1, n))
+						const lift = Math.abs(k - mid) * Math.abs(k - mid) * 1.2
+						return (
+							<div
+								key={u}
+								data-uid={u}
+								className={`hand-card ${playable(u) ? 'playable' : ''} ${sel === u ? 'selected' : ''} ${marked.includes(u) ? 'marked' : ''} ${glow.has(u) ? 'glow' : ''}`}
+								style={{ transform: `translateY(${lift}px) rotate(${rot}deg)`, zIndex: sel === u ? 50 : k }}
+								{...dragProps(u, true)}
+							>
+								<CardImg code={g.insts[u].code} />
+								{(card(g.insts[u].code).res?.length ?? 0) > 0 && <span className="res-count">{card(g.insts[u].code).res!.length}</span>}
+							</div>
+						)
+					})}
+					{!pl.hand.length && <div className="empty">No cards in hand</div>}
+				</div>
+			</section>
 		</div>
 	)
 
@@ -492,7 +520,7 @@ export function Board({
 			</div>
 		)
 	return (
-		<div className={`board ${pocket ? 'pocket' : ''} ${tall ? 'tall' : ''}`}>
+		<div className={`board ${pocket ? 'pocket' : ''} ${tall ? 'tall' : ''} ${portrait ? 'portrait' : 'landscape'}`}>
 			{statusBar}
 			{table}
 			<div className="float-trays">
@@ -536,6 +564,11 @@ export function Board({
 			{over}
 		</div>
 	)
+}
+
+/** A comic caption box: the label in the corner of each panel. */
+function Caption({ children }: { children: React.ReactNode }) {
+	return <div className="caption">{children}</div>
 }
 
 function Banner({ text }: { text: string }) {

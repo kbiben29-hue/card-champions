@@ -65,7 +65,12 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
   "No more tips" → localStorage `champions.tips`).
 - Look: comic lettering — Bangers for titles and every button (black-outlined caption boxes with hard
   shadows), POW starburst (`clip-path`) for each screen's main action (`button.primary`), Comic Neue text.
-- Screen sizes (`App.tsx useFit`): phones (coarse pointer, short side < 600) get a 960-wide stage and the
+- The board is a comic page (`.felt.page` CSS grid of `.cpanel` sections on white paper gutters, each with a
+  `Caption` box, flat colour + Ben-Day halftone dots; the villain is the splash panel with speed lines):
+  villain · scheme · encounter / minions (· team) / hero · in play · your deck / hand. Landscape grid,
+  `.pocket` (phones sideways: villain row, your row, hand) and `.portrait` (upright: two columns, stacked).
+  The hand fans with CSS container units so every card fits (`--n`, `--cw`).
+- Screen sizes (`App.tsx useFit`): upright screens (`portrait`) get a 1080-wide stage (640 on phones); phones (coarse pointer, short side < 600) get a 960-wide stage and the
   `.pocket` CSS (compact cards, full-screen viewer/log sheets, 1 v 1 uses the table + enemy strip instead of
   the console); tablets/computers get 1440 wide, `.tall` bigger cards when the stage is ≥ 960 high (iPad).
   The stage sits inside the safe area (notch / home bar).

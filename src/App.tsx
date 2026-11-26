@@ -34,17 +34,19 @@ function writeSave(s: Session | null) {
 
 /** The table is a fixed-width stage (1440, or 960 on phones) scaled to fill the safe area; its height follows the screen's shape. */
 function useFit(wrap: RefObject<HTMLDivElement | null>, active: boolean) {
-	const [fit, setFit] = useState({ scale: 1, left: 0, top: 0, w: 1440, h: 900, phone: false })
+	const [fit, setFit] = useState({ scale: 1, left: 0, top: 0, w: 1440, h: 900, phone: false, portrait: false })
 	useLayoutEffect(() => {
 		const f = () => {
 			const r = wrap.current?.getBoundingClientRect()
 			const vw = r?.width || window.innerWidth
 			const vh = r?.height || window.innerHeight
 			const phone = isPhone()
-			const w = phone ? 960 : 1440
-			const h = Math.round(Math.min(phone ? 1100 : 2000, Math.max(phone ? 430 : 800, (w * vh) / vw)))
+			// upright screens get a narrower, taller page; sideways ones the wide table
+			const portrait = vh > vw * 1.05
+			const w = portrait ? (phone ? 640 : 1080) : phone ? 960 : 1440
+			const h = Math.round(Math.min(portrait ? 2400 : phone ? 1100 : 2000, Math.max(portrait ? 900 : phone ? 430 : 800, (w * vh) / vw)))
 			const scale = Math.min(vw / w, vh / h)
-			setFit({ scale, left: (vw - w * scale) / 2, top: (vh - h * scale) / 2, w, h, phone })
+			setFit({ scale, left: (vw - w * scale) / 2, top: (vh - h * scale) / 2, w, h, phone, portrait })
 		}
 		f()
 		const t = setTimeout(f, 300)
@@ -271,15 +273,15 @@ export default function App() {
 	const canControl = (p: number) => (seat === undefined ? true : p === seat)
 	return (
 		<div className="stage-wrap" ref={wrapRef}>
-			<div className="rotate-hint">Turn your phone sideways for the table.</div>
 			<div className="stage" style={{ width: fit.w, height: fit.h, transform: `translate(${fit.left}px, ${fit.top}px) scale(${fit.scale})` }}>
 				<Board
 					g={g}
 					viewer={seat ?? viewer}
 					setViewer={(p) => (seat === undefined ? setViewer(p) : undefined)}
-					layout={g.mode === 'pvp' && !fit.phone ? 'console' : 'table'}
-					pocket={fit.phone}
-					tall={!fit.phone && fit.h >= 960}
+					layout={g.mode === 'pvp' && !fit.phone && !fit.portrait ? 'console' : 'table'}
+					pocket={fit.phone && !fit.portrait}
+					tall={!(fit.phone && !fit.portrait) && fit.h >= 960}
+					portrait={fit.portrait}
 					dispatch={dispatch}
 					canControl={canControl}
 					onMenu={() => {
