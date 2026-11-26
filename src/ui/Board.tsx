@@ -7,6 +7,7 @@
 // onto a scheme to thwart. Everything also works by tapping.
 import type * as React from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { card, has } from '../data/data'
 import {
 	actionsFor,
@@ -178,50 +179,94 @@ export function Board({
 		send(it)
 	}
 
-	// ── drag and drop
-	const drag = useRef<{ uid: number; x: number; y: number; ghost?: HTMLElement; moved: boolean } | null>(null)
-	const onDown = (uid: number, e: React.PointerEvent) => {
-		if (e.button !== 0) return
-		drag.current = { uid, x: e.clientX, y: e.clientY, moved: false }
-		;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
-	}
-	const onMove = (e: React.PointerEvent) => {
-		const d = drag.current
-		if (!d) return
-		const dx = e.clientX - d.x
-		const dy = e.clientY - d.y
-		if (!d.moved && Math.hypot(dx, dy) > 12) {
-			d.moved = true
-			const src = (e.currentTarget as HTMLElement).querySelector('img,.textcard') as HTMLElement | null
-			const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-			const ghost = document.createElement('div')
-			ghost.className = 'drag-ghost'
-			ghost.style.width = `${r.width}px`
-			ghost.style.height = `${r.height}px`
-			if (src) ghost.appendChild(src.cloneNode(true))
-			document.body.appendChild(ghost)
-			d.ghost = ghost
-		}
-		if (d.ghost) {
-			d.ghost.style.left = `${e.clientX - d.ghost.offsetWidth / 2}px`
-			d.ghost.style.top = `${e.clientY - d.ghost.offsetHeight / 2}px`
-		}
-	}
-	const onUp = (e: React.PointerEvent) => {
+	// ── drag and drop. Listeners live on the window for the whole drag, so a card that re-renders or a
+	// browser that steals the touch (scrolling, a lost pointer capture) can't leave a frozen ghost behind.
+	const drag = useRef<{ uid: number; x: number; y: number; ox: number; oy: number; ghost?: HTMLElement; moved: boolean; from?: HTMLElement; hot?: HTMLElement | null; stop?: () => void } | null>(null)
+	const endDrag = () => {
 		const d = drag.current
 		drag.current = null
 		if (!d) return
+		d.stop?.()
 		d.ghost?.remove()
-		if (!d.moved) return tapCard(d.uid)
-		const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
+		d.from?.classList.remove('lifted')
+		d.hot?.classList.remove('drop-hot')
+		document.body.classList.remove('dragging')
+		for (const el of document.querySelectorAll('.drag-ghost')) el.remove()
+	}
+	useEffect(() => endDrag, [])
+	/** what's under the finger: a card (by uid), and whether that's the table rather than the hand */
+	const dropAt = (cx: number, cy: number) => {
+		const el = document.elementFromPoint(cx, cy) as HTMLElement | null
 		const tEl = el?.closest('[data-uid]') as HTMLElement | null
-		const target = tEl ? Number(tEl.dataset.uid) : undefined
-		const onTable = !!el?.closest('.felt') && !el?.closest('.hand')
-		const x = g.insts[d.uid]
+		const blocked = !el || !!el.closest('.hand, .trays, .viewer, .log-sheet, .statusbar, header, .modal')
+		return { el, tEl, target: tEl ? Number(tEl.dataset.uid) : undefined, onTable: !blocked }
+	}
+	const onDown = (uid: number, e: React.PointerEvent) => {
+		if (e.button !== 0) return
+		endDrag()
+		const from = e.currentTarget as HTMLElement
+		const r = from.getBoundingClientRect()
+		const d: NonNullable<typeof drag.current> = { uid, x: e.clientX, y: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top, moved: false, from }
+		drag.current = d
+		const move = (ev: PointerEvent) => {
+			const dx = ev.clientX - d.x
+			const dy = ev.clientY - d.y
+			if (!d.moved && Math.hypot(dx, dy) > 10) {
+				d.moved = true
+				const src = from.querySelector('img,.textcard,.drone-back') as HTMLElement | null
+				const ghost = document.createElement('div')
+				ghost.className = 'drag-ghost'
+				ghost.style.width = `${r.width}px`
+				ghost.style.height = `${r.height}px`
+				if (src) ghost.appendChild(src.cloneNode(true))
+				document.body.appendChild(ghost)
+				d.ghost = ghost
+				from.classList.add('lifted')
+				document.body.classList.add('dragging')
+			}
+			if (!d.ghost) return
+			ev.preventDefault()
+			d.ghost.style.transform = `translate(${ev.clientX - r.width / 2}px, ${ev.clientY - r.height / 2}px) rotate(${Math.max(-12, Math.min(12, (ev.movementX ?? 0) * 0.8))}deg) scale(1.08)`
+			// light up where it would land
+			const { tEl, onTable, el } = dropAt(ev.clientX, ev.clientY)
+			const hot = (tEl && tEl !== from && !tEl.closest('.hand') ? tEl : onTable ? (el?.closest('.felt2, .felt, .handbar .dock') as HTMLElement | null) : null) ?? null
+			if (hot !== d.hot) {
+				d.hot?.classList.remove('drop-hot')
+				hot?.classList.add('drop-hot')
+				d.hot = hot
+			}
+		}
+		const up = (ev: PointerEvent) => {
+			const moved = d.moved
+			endDrag()
+			if (!moved) return tapCard(uid)
+			drop(uid, ev.clientX, ev.clientY)
+		}
+		const cancel = () => endDrag()
+		const noScroll = (ev: TouchEvent) => d.moved && ev.preventDefault()
+		window.addEventListener('pointermove', move, { passive: false })
+		window.addEventListener('pointerup', up)
+		window.addEventListener('pointercancel', cancel)
+		window.addEventListener('blur', cancel)
+		window.addEventListener('touchmove', noScroll, { passive: false })
+		d.stop = () => {
+			window.removeEventListener('pointermove', move)
+			window.removeEventListener('pointerup', up)
+			window.removeEventListener('pointercancel', cancel)
+			window.removeEventListener('blur', cancel)
+			window.removeEventListener('touchmove', noScroll)
+		}
+	}
+	const drop = (uid: number, cx: number, cy: number) => {
+		const { target, onTable } = dropAt(cx, cy)
+		const x = g.insts[uid]
 		if (!x) return
-		if (pl.hand.includes(d.uid)) {
+		if (pl.hand.includes(uid)) {
 			if (!onTable) return
-			return send({ t: 'play', player: me, uid: d.uid, pay: [], target })
+			const why = playProblem(g, me, uid)
+			if (why) return setErr(why)
+			slamAt.current = { uid, x: cx, y: cy, t: performance.now() }
+			return send({ t: 'play', player: me, uid, pay: [], target: target === uid ? undefined : target })
 		}
 		if (target === undefined) return
 		const isEnemy = attackTargets(g, me).includes(target)
@@ -231,14 +276,54 @@ export function Board({
 			if (isScheme) return send({ t: 'basic', player: me, power: 'thwart', target })
 		}
 		if (x.zone === 'play' && card(x.code).t === 'ally') {
-			if (isEnemy) return send({ t: 'ally', player: me, uid: d.uid, power: 'attack', target })
-			if (isScheme) return send({ t: 'ally', player: me, uid: d.uid, power: 'thwart', target })
+			if (isEnemy) return send({ t: 'ally', player: me, uid, power: 'attack', target })
+			if (isScheme) return send({ t: 'ally', player: me, uid, power: 'thwart', target })
 		}
 	}
 	const dragProps = (uid: number, mine: boolean) =>
-		mine && canControl(me)
-			? { onPointerDown: (e: React.PointerEvent) => onDown(uid, e), onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: () => (drag.current?.ghost?.remove(), (drag.current = null)) }
-			: { onClick: () => tapCard(uid) }
+		mine && canControl(me) ? { onPointerDown: (e: React.PointerEvent) => onDown(uid, e) } : { onClick: () => tapCard(uid) }
+
+	// ── cards landing on the table: a slam with cracks in the ground
+	const slamAt = useRef<{ uid: number; x: number; y: number; t: number } | null>(null)
+	const [slams, setSlams] = useState<Slam[]>([])
+	const prevG = useRef(g)
+	useEffect(() => {
+		const before = prevG.current
+		prevG.current = g
+		if (before === g || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+		const LAND = ['play', 'engaged', 'side', 'attached', 'env']
+		const fresh = Object.values(g.insts).filter((x) => LAND.includes(x.zone) && (!before.insts[x.uid] || !LAND.includes(before.insts[x.uid].zone)))
+		if (!fresh.length) return
+		requestAnimationFrame(() => {
+			const add: Slam[] = []
+			for (const x of fresh.slice(0, 4)) {
+				const el = document.querySelector(`.board [data-uid="${x.uid}"]:not(.hcard)`) as HTMLElement | null
+				if (!el) continue
+				// your own cards: bring the spot where it lands into view
+				if (x.ctrl === me) el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+				const r = el.getBoundingClientRect()
+				const c = card(x.code)
+				const mine = x.ctrl === me && x.zone === 'play'
+				const big = (c.cost ?? 0) >= 3 || c.t === 'minion' || /hulk|giant|thing/i.test(c.n)
+				add.push({ key: `${x.uid}-${performance.now()}`, x: r.left + r.width / 2, y: r.top + r.height * 0.82, w: r.width, big, mine, seed: x.uid })
+				el.classList.remove('slam-in')
+				void el.offsetWidth
+				el.classList.add('slam-in')
+				setTimeout(() => el.classList.remove('slam-in'), 700)
+			}
+			slamAt.current = null
+			if (!add.length) return
+			setSlams((s) => [...s, ...add])
+			if (add.some((a) => a.big)) {
+				const felt = document.querySelector('.board') as HTMLElement | null
+				felt?.classList.remove('shake')
+				void felt?.offsetWidth
+				felt?.classList.add('shake')
+				setTimeout(() => felt?.classList.remove('shake'), 450)
+			}
+			setTimeout(() => setSlams((s) => s.filter((z) => !add.includes(z))), 1300)
+		})
+	}, [g, me])
 
 	const tile = (x: Inst, opts: { size?: 'v' | 'm' | 's' | 'land' | 'land-s'; mine?: boolean; showHp?: boolean; label?: boolean } = {}) => (
 		<Tile key={x.uid} g={g} x={x} size={opts.size ?? 'm'} label={opts.label} glow={glow.has(x.uid)} selected={sel === x.uid} marked={marked.includes(x.uid)} {...dragProps(x.uid, !!opts.mine)} />
@@ -690,6 +775,10 @@ export function Board({
 			{statusBar}
 			{tabletop}
 			{handbar}
+			{createPortal(
+				slams.map((z) => <SlamFx key={z.key} z={z} />),
+				document.body,
+			)}
 			<div className="trays">
 				{prompt}
 				{waiting}
@@ -749,6 +838,46 @@ function Spotlight({ code }: { code: string }) {
 	return (
 		<div className={`spotlight ${isLandscape(code) ? 'land' : ''}`}>
 			<CardImg code={code} />
+		</div>
+	)
+}
+
+type Slam = { key: string; x: number; y: number; w: number; big: boolean; mine: boolean; seed: number }
+/** Cracks in the ground and a puff of dust where a card lands. */
+function SlamFx({ z }: { z: Slam }) {
+	const size = z.w * (z.big ? 3.2 : 2.4)
+	// jagged cracks radiating from the impact, different for every card
+	let r = z.seed * 9301 + 49297
+	const rnd = () => ((r = (r * 9301 + 49297) % 233280) / 233280)
+	const n = z.big ? 9 : 6
+	const cracks: string[] = []
+	for (let i = 0; i < n; i++) {
+		const a = (i / n) * Math.PI * 2 + rnd() * 0.5
+		let px = 50
+		let py = 50
+		const pts = [`${px},${py}`]
+		const len = 22 + rnd() * (z.big ? 26 : 16)
+		for (let k = 1; k <= 4; k++) {
+			const d = (len * k) / 4
+			const j = (rnd() - 0.5) * 0.6
+			px = 50 + Math.cos(a + j) * d
+			py = 50 + Math.sin(a + j) * d * 0.55
+			pts.push(`${px.toFixed(1)},${py.toFixed(1)}`)
+		}
+		cracks.push(pts.join(' '))
+	}
+	return (
+		<div className={`slam ${z.big ? 'big' : ''}`} style={{ left: z.x - size / 2, top: z.y - size / 2, width: size, height: size }} aria-hidden>
+			<svg viewBox="0 0 100 100">
+				<ellipse className="slam-ring" cx="50" cy="50" rx="30" ry="15" />
+				{cracks.map((p, i) => (
+					<polyline key={i} className="slam-crack" points={p} style={{ animationDelay: `${i * 12}ms` }} />
+				))}
+			</svg>
+			{Array.from({ length: z.big ? 10 : 6 }, (_, i) => (
+				<i key={i} className="slam-dust" style={{ ['--a' as string]: `${(i / (z.big ? 10 : 6)) * 360 + rnd() * 20}deg`, ['--d' as string]: `${30 + rnd() * 30}%` }} />
+			))}
+			{z.big && z.mine && <b className="slam-word">{['WHAM!', 'BOOM!', 'KRAK!', 'THOOM!'][z.seed % 4]}</b>}
 		</div>
 	)
 }
