@@ -101,6 +101,10 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
 
 ## Next steps
 
+0. Kris's next session (agreed): (a) a second picture source for the ~400 cards MarvelCDB lacks
+   (`src/data/images.json` → missing), hosted in this repo; (b) automate the card text the game can't read
+   yet, so the "do this by hand" manual prompts go away (start from `npm run sim` manual counts and the
+   most common unread sentences).
 1. More card text read automatically (sim reports manual prompts): "for each …", "deal damage equal to",
    "it gets +N DEF for that defense", player-side "Search the encounter deck …", resource-colour conditions
    (track which resources paid), hero alt forms (Ant-Man/Wasp giant/tiny, Ironheart upgrades, SP//dr),
