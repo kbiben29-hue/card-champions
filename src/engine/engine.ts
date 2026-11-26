@@ -125,7 +125,12 @@ export function stat(g: Game, uid: number, s: 'atk' | 'thw' | 'def' | 'sch' | 'r
 		base = card(p.hero).hp ?? base
 	}
 	let n = base + (i.bonus?.[s as 'atk'] ?? 0)
-	for (const a of attachments(g, uid)) for (const m of parse(card(a.code)).mods) if (m.stat === s && (m.who === 'attached' || m.who === 'villain')) n += m.n
+	for (const a of attachments(g, uid)) {
+		for (const m of parse(card(a.code)).mods) if (m.stat === s && (m.who === 'attached' || m.who === 'villain')) n += m.n
+		// encounter attachments print their modifier in the stat box: Charge "+3 ATK", Enhanced Ivory Horn "+1 ATK"
+		const ac = card(a.code)
+		if (ac.t === 'attachment' && (s === 'atk' || s === 'sch' || s === 'thw' || s === 'def') && typeof (ac as unknown as Record<string, unknown>)[s] === 'number') n += (ac as unknown as Record<string, number>)[s]
+	}
 	if (i.zone === 'identity') {
 		for (const x of playArea(g, i.owner)) for (const m of parse(card(x.code)).mods) if (m.stat === s && m.who === 'hero') n += m.n
 	}
@@ -632,7 +637,18 @@ function stepActivate(g: Game, j: Extract<Job, { k: 'activate' }>): boolean {
 			if (j.defender !== undefined) return false // already decided ("it attacks Helpful Bystander instead")
 			if (pl.form === 'hero' && !h.ex) opts.push(h.uid)
 			for (const a of allies(g, j.target)) if (!a.ex) opts.push(a.uid)
-			if (opts.length) ask(g, { who: j.target, kind: 'defend', attacker: j.enemy, options: opts, text: `${ename} attacks you (ATK ${stat(g, j.enemy, 'atk')} + boost). Defend?` })
+			const atk = stat(g, j.enemy, 'atk')
+			const nb = j.boosts.length
+			const def = pl.form === 'hero' && !h.ex ? stat(g, h.uid, 'def') : 0
+			const hit = `${atk} damage${nb ? ` + ${nb} facedown boost card${nb > 1 ? 's' : ''}` : ''}`
+			if (opts.length)
+				ask(g, {
+					who: j.target,
+					kind: 'defend',
+					attacker: j.enemy,
+					options: opts,
+					text: `${ename} attacks you: ${hit}.${def ? ` Defending blocks ${def} of it.` : ''} Defend?`,
+				})
 		}
 		return false
 	}
@@ -690,7 +706,7 @@ function stepActivate(g: Game, j: Extract<Job, { k: 'activate' }>): boolean {
 				}
 			}
 			const victim = d && g.insts[d] ? d : g.players[j.target].ident
-			if (I(g, victim).zone === 'identity') openWindow(g, j.target, 'attackDamage', { area: j.area, player: j.target, src: j.enemy, attack: j.enemy })
+			if (I(g, victim).zone === 'identity' && dmg > 0) openWindow(g, j.target, 'attackDamage', { area: j.area, player: j.target, src: j.enemy, attack: j.enemy })
 			;(j as { dmg?: number; victim?: number }).dmg = dmg
 			;(j as { victim?: number }).victim = victim
 		}
@@ -1019,12 +1035,15 @@ function defeatMinion(g: Game, uid: number) {
 function openWindow(g: Game, p: number, w: Window, ctx: Ctx) {
 	const pl = g.players[p]
 	if (pl.out) return
+	// "When the villain initiates an attack" is only the villain; "an enemy" is any enemy
+	const fits = (ab: Ability) =>
+		!(w === 'villainAttacksYou' && /the villain|a villain/i.test(ab.trigger ?? ab.text) && !/an enemy/i.test(ab.trigger ?? ab.text) && I(g, ctx.src).zone !== 'villain')
 	const offers: { uid: number; ab: number; label: string }[] = []
 	const sources = [pl.ident, ...playArea(g, p).map((x) => x.uid), ...Object.values(g.insts).filter((x) => x.ctrl === p && x.zone === 'play' && x.host !== undefined).map((x) => x.uid)]
 	for (const u of sources) {
 		const abs = abilitiesOf(g, u)
 		abs.forEach((ab, k) => {
-			if (ab.window !== w || (ab.form && ab.form !== pl.form) || usedUp(g, u, k, ab)) return
+			if (ab.window !== w || (ab.form && ab.form !== pl.form) || usedUp(g, u, k, ab) || !fits(ab)) return
 			if (ab.cost.length === 0 && ab.timing === 'interrupt' && I(g, u).zone === 'identity') {
 				// free identity abilities (Spider-Sense) just happen
 				markUsed(g, u, k, ab)
@@ -1044,7 +1063,7 @@ function openWindow(g: Game, p: number, w: Window, ctx: Ctx) {
 		if (c.t !== 'event') continue
 		const abs = parse(c, card(pl.alter).n).abilities
 		abs.forEach((ab, k) => {
-			if (ab.window !== w || (ab.form && ab.form !== pl.form)) return
+			if (ab.window !== w || (ab.form && ab.form !== pl.form) || !fits(ab)) return
 			if (affordable(g, p, c.cost ?? 0, [u])) offers.push({ uid: u, ab: k, label: `Play ${c.n} (cost ${c.cost ?? 0}): ${ab.text.replace(/^[^:]*:\s*/, '')}` })
 		})
 	}

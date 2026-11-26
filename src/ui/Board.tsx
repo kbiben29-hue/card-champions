@@ -512,6 +512,9 @@ export function Board({
 		</div>
 	)
 
+	// a gentle warning: in hero form with little health left, the villain will attack you
+	const hp0 = g.insts[pl.ident] ? stat(g, pl.ident, 'hp') - g.insts[pl.ident].dmg : 0
+	const lowHp = myTurn && pl.form === 'hero' && !pl.flippedThisRound && hp0 <= Math.max(3, Math.ceil(stat(g, pl.ident, 'hp') * 0.4))
 	const actionBar = myTurn && !aim && (
 		<div className="action-bar">
 			{ending ? (
@@ -733,6 +736,7 @@ export function Board({
 								{a.intent.t === 'ability' ? `${a.label.split(':')[0]} ability` : a.label}
 							</button>
 						))}
+						{lowHp && <span className="hint warn">Low on health: flip to {card(g.players[me].alter).n} and Recover before you end your turn.</span>}
 						<button className="primary end" onClick={() => setEnding(true)}>
 							End turn
 						</button>

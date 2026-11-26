@@ -263,3 +263,13 @@ test('"choose and discard" lets you pick the card', () => {
 	g = apply(g, autoIntent(g)!)
 	assert.equal(g.players[0].hand.length, hand - 1)
 })
+
+test('encounter attachments add their printed stat modifier (Charge: +3 ATK)', () => {
+	const g = ready(game())
+	const v = g.areas[0].villain
+	const base = stat(g, v, 'atk')
+	const charge = Object.values(g.insts).find((x) => x.code === '01099')!
+	charge.zone = 'attached'
+	charge.host = v
+	assert.equal(stat(g, v, 'atk'), base + 3)
+})
