@@ -254,3 +254,12 @@ test('the villain\'s stage number and counters on a named card count for "X"', (
 	g = resolveSteps(g, [{ k: 'heal', n: { mul: 2, count: 'villain stage' }, who: 'villain' }], { area: 0, player: 0, src: v })
 	assert.equal(g.insts[v].dmg, 3) // Rhino I: heals 2
 })
+
+test('"choose and discard" lets you pick the card', () => {
+	let g = ready(game())
+	const hand = g.players[0].hand.length
+	g = resolveSteps(g, [{ k: 'discardHand', n: 1, random: false, each: false }], { area: 0, player: 0, src: g.areas[0].main })
+	assert.equal(g.queue[0]?.kind, 'searchPick')
+	g = apply(g, autoIntent(g)!)
+	assert.equal(g.players[0].hand.length, hand - 1)
+})

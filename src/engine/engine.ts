@@ -1772,6 +1772,24 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 			return next()
 		}
 		case 'discardHand': {
+			// "Choose and discard 1 card from your hand": you pick
+			if (!s.random && !s.each) {
+				const pl = g.players[p]
+				j.picks ??= []
+				if (j.pick !== undefined && pl.hand.includes(j.pick)) {
+					moveTo(g, j.pick, 'discard')
+					log(g, `${pl.name} discards ${nameOf(g, j.pick)}.`, p)
+					j.picks.push(j.pick)
+					j.pick = undefined
+				}
+				if (j.picks.length < s.n && pl.hand.length) {
+					ask(g, { who: p, kind: 'searchPick', options: [...pl.hand], text: `${srcName}: choose a card to discard from your hand.`, card: src })
+					return false
+				}
+				ctx.did = j.picks.length > 0
+				j.picks = undefined
+				return next()
+			}
 			const ps = s.each ? g.areas[area].players.filter((q) => !g.players[q].out) : [p]
 			let any = false
 			for (const q of ps) {
