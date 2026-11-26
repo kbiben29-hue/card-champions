@@ -106,11 +106,15 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
 
 ## Next steps
 
-0. Card text automation in progress: read so far ~44% of player abilities, ~45% of encounter abilities
-   (core set 155/198); `npm run sim -- 120 --why` lists the unread text players actually hit, most first.
+0. Card text automation in progress (goal agreed with Kris: 75%): read so far ~55% of player abilities, ~51% of
+   encounter abilities (~53% overall); measure with a coverage script over `CARDS` × `parse()` counting
+   abilities with no `manual` step; `npm run sim -- 120 --why` lists the unread text players actually hit, most first.
    "When X attacks" abilities now run as steps during the activation (`attackPlus`, choices, discard after
    attack); "Special" abilities (with their italic labels, e.g. The Hood's Foul Play) resolve via `special`;
-   coloured costs inside choices via `spendRes`. Engine steps added: encounter searches (`encSearch`), drones (facedown 1/1/1
+   coloured costs inside choices via `spendRes`. Also: `fallback()` in text.ts (tidy qualifiers, split "A and
+   B", "each player …s", "the player who defeated …"), `cardFilter()` for deck searches, `deckUntil`, `later`
+   ("at the end of the phase/round"), `branch` (resource / form / pick-a-row lists), `fdBoost` (facedown
+   boost cards for the next activation), `{expr}` numbers ("equal to your ATK", "where X is …"). Engine steps added: encounter searches (`encSearch`), drones (facedown 1/1/1
    minions), "if X is (not) in play", "(N instead if …)" yes/no, "for each …" counts (`countOf`),
    look-at-top-N, counters on named cards, shield, win… Next: the long tail from the coverage script
    (scenario-specific: Kang, Hood, Loki, Mojo, missions; resource-colour conditions).
