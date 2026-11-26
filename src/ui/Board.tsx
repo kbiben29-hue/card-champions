@@ -34,6 +34,7 @@ import {
 } from '../engine/engine'
 import { parse } from '../engine/text'
 import { CardImg, isLandscape, RulesText, cardTitle } from './Card'
+import { RULES, ruleForPrompt, rulesForText, setTips, tipForLog, tipsOn, type Rule } from './rules'
 
 export type Layout = 'table' | 'console'
 type Dispatch = (it: Intent) => string | null
@@ -77,6 +78,23 @@ export function Board({
 	const [ending, setEnding] = useState(false)
 	const [marked, setMarked] = useState<number[]>([])
 	const [hidePrompt, setHidePrompt] = useState(false)
+	const [tips, setTipsState] = useState(tipsOn)
+	const [tip, setTip] = useState<Rule | null>(null)
+	const seenTips = useRef<Set<string>>(new Set())
+	const logSeen = useRef(0)
+	useEffect(() => {
+		const start = logSeen.current
+		logSeen.current = g.log.length
+		if (!tips || start > g.log.length) return
+		for (const l of g.log.slice(start)) {
+			const k = tipForLog(l.t)
+			if (k && !seenTips.current.has(k) && RULES[k]) {
+				seenTips.current.add(k)
+				setTip(RULES[k])
+				break
+			}
+		}
+	}, [g.log.length, tips])
 	const me = viewer
 	const pl = g.players[me]
 	const area = pl.area
@@ -367,7 +385,7 @@ export function Board({
 			{netBadge}
 			<span className="grow" />
 			<button className={showRef ? 'on' : ''} onClick={() => setShowRef(!showRef)}>
-				Rules
+				📖 Rules
 			</button>
 			<button className={showLog ? 'on' : ''} onClick={() => setShowLog(!showLog)}>
 				Log
@@ -447,8 +465,28 @@ export function Board({
 						<LogPanel g={g} />
 					</div>
 				</div>
-				{showRef && <Reference onClose={() => setShowRef(false)} />}
+				{showRef && <Reference onClose={() => setShowRef(false)} tips={tips} setTips={(v) => (setTips(v), setTipsState(v))} />}
 				{err && <div className="toast">{err}</div>}
+				{tip && (
+					<div className="tip-box">
+						<b>📖 {tip.title}</b>
+						<p>{tip.text}</p>
+						<div className="row">
+							<button className="primary" onClick={() => setTip(null)}>
+								Got it
+							</button>
+							<button
+								onClick={() => {
+									setTips(false)
+									setTipsState(false)
+									setTip(null)
+								}}
+							>
+								No more tips
+							</button>
+						</div>
+					</div>
+				)}
 				{g.banner && <Banner key={g.log.length} text={g.banner} />}
 				{over}
 			</div>
@@ -471,8 +509,28 @@ export function Board({
 			{viewerBox}
 			<StatusPanel g={g} area={area} floating />
 			{showLog && <LogPanel g={g} floating onClose={() => setShowLog(false)} />}
-			{showRef && <Reference onClose={() => setShowRef(false)} />}
+			{showRef && <Reference onClose={() => setShowRef(false)} tips={tips} setTips={(v) => (setTips(v), setTipsState(v))} />}
 			{err && <div className="toast">{err}</div>}
+			{tip && (
+				<div className="tip-box">
+					<b>📖 {tip.title}</b>
+					<p>{tip.text}</p>
+					<div className="row">
+						<button className="primary" onClick={() => setTip(null)}>
+							Got it
+						</button>
+						<button
+							onClick={() => {
+								setTips(false)
+								setTipsState(false)
+								setTip(null)
+							}}
+						>
+							No more tips
+						</button>
+					</div>
+				</div>
+			)}
 			{g.banner && <Banner key={g.log.length} text={g.banner} />}
 			{g.spotlight !== undefined && g.insts[g.spotlight] && <Spotlight code={g.insts[g.spotlight].code} />}
 			{over}
@@ -744,6 +802,7 @@ function PromptBox({ g, p, me, marked, send, onHide }: { g: Game; p: Prompt; me:
 				return null
 		}
 	})()
+	const rule = ruleForPrompt(p.kind, p.text)
 	return (
 		<div className={`tray prompt k-${p.kind}`}>
 			<div className="tray-head">
@@ -756,7 +815,17 @@ function PromptBox({ g, p, me, marked, send, onHide }: { g: Game; p: Prompt; me:
 				)}
 			</div>
 			{body}
+			{rule && <RuleNote r={rule} />}
 		</div>
+	)
+}
+
+function RuleNote({ r }: { r: Rule }) {
+	return (
+		<details className="rule-note">
+			<summary>📖 {r.title}</summary>
+			<p>{r.text}</p>
+		</details>
 	)
 }
 
@@ -807,6 +876,9 @@ function Viewer({
 					{card(shown).tr ? ` · ${card(shown).tr}` : ''}
 				</small>
 				<RulesText text={card(shown).x} />
+				{rulesForText(card(shown).x, card(shown).t).map((r) => (
+					<RuleNote key={r.title} r={r} />
+				))}
 				{backCode && (
 					<button className="link" onClick={() => setFlip(!flip)}>
 						{flip ? 'Show the front' : 'Show the other side'}
@@ -867,58 +939,30 @@ function Viewer({
 	)
 }
 
-function Reference({ onClose }: { onClose: () => void }) {
+function Reference({ onClose, tips, setTips }: { onClose: () => void; tips: boolean; setTips: (v: boolean) => void }) {
+	const [q, setQ] = useState('')
+	const order = ['round', 'turn', 'pay', 'forms', 'handsize', 'villainPhase', 'activation', 'defend', 'boost', 'encounter', 'threat', 'stage']
+	const rest = Object.keys(RULES).filter((k) => !order.includes(k))
+	const list = [...order, ...rest].map((k) => RULES[k]).filter((r) => !q || (r.title + ' ' + r.text).toLowerCase().includes(q.toLowerCase()))
 	return (
 		<div className="reference">
 			<button className="close" onClick={onClose}>
 				×
 			</button>
-			<h3>Round</h3>
-			<ol>
-				<li>
-					<b>Player phase</b> — each player takes a turn: play cards (pay by discarding cards from hand for their resources), use your hero's basic powers (Attack, Thwart, or
-					Defend later) or your alter-ego's Recover, use allies and card abilities, and change form once.
-				</li>
-				<li>Then everyone may discard cards, draws back up to their hand size, and readies everything.</li>
-				<li>
-					<b>Villain phase</b> — threat goes on the main scheme (acceleration adds more). The villain then activates against each player: it attacks heroes and schemes against alter
-					egos, with a facedown boost card. Each player's minions do the same.
-				</li>
-				<li>Each player is dealt an encounter card (+1 per hazard icon) and reveals it. The first-player token moves on.</li>
-			</ol>
-			<h3>Words on cards</h3>
-			<dl>
-				<dt>Guard</dt>
-				<dd>While it's engaged with you, you can't attack the villain.</dd>
-				<dt>Patrol</dt>
-				<dd>While it's engaged with you, you can't thwart the main scheme.</dd>
-				<dt>Crisis</dt>
-				<dd>While that side scheme is in play, no one can remove threat from the main scheme.</dd>
-				<dt>Toughness / tough</dt>
-				<dd>A tough status card stops the next damage, then is removed.</dd>
-				<dt>Stunned / confused</dt>
-				<dd>The next attack (stunned) or thwart/scheme (confused) doesn't happen — the status is removed instead.</dd>
-				<dt>Quickstrike</dt>
-				<dd>Attacks as soon as it engages your hero.</dd>
-				<dt>Surge</dt>
-				<dd>Reveal one more encounter card afterwards.</dd>
-				<dt>Retaliate X</dt>
-				<dd>Whoever attacks it takes X damage.</dd>
-				<dt>Piercing / Overkill / Ranged</dt>
-				<dd>Piercing removes tough first; overkill passes excess damage from a defending ally to its hero; ranged ignores retaliate.</dd>
-				<dt>Steady / Stalwart</dt>
-				<dd>Steady can hold two stuns or confusions; stalwart can't be stunned or confused.</dd>
-				<dt>Villainous</dt>
-				<dd>This minion also gets a boost card when it activates.</dd>
-				<dt>Incite X / Hinder X</dt>
-				<dd>When revealed, X threat goes on the main scheme (incite) or on this scheme (hinder).</dd>
-				<dt>Consequential damage</dt>
-				<dd>The number under an ally's ATK/THW is the damage it takes for using it.</dd>
-			</dl>
-			<p className="sub">
-				Cards the game can't read yet ask you to do that part with the table tools (tap a card → Table tools). Competitive mode: in each round the Registration team plays, then the
-				Resistance team, then both villain phases.
-			</p>
+			<h3>📖 How to play</h3>
+			<div className="row">
+				<input placeholder="Search the rules" value={q} onChange={(e) => setQ(e.target.value)} />
+				<label className="nowrap">
+					<input type="checkbox" checked={tips} onChange={(e) => setTips(e.target.checked)} /> Tips during play
+				</label>
+			</div>
+			{list.map((r) => (
+				<div key={r.title} className="ref-rule">
+					<b>{r.title}</b>
+					<p>{r.text}</p>
+				</div>
+			))}
+			<p className="sub">Rules explained in our own words, following the official Marvel Champions Rules Reference.</p>
 		</div>
 	)
 }

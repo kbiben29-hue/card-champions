@@ -1,6 +1,7 @@
 // Starter decks: the hero's own cards + aspect cards + basic cards, 40 cards in all,
 // built from the packs the player owns. Also reads MarvelCDB deck lists.
 import { ASPECTS, CARDS, card, heroes, maybeCard, type CardData } from '../data/data'
+import preconsJson from '../data/precons.json'
 
 export interface DeckList {
 	name: string
@@ -152,4 +153,31 @@ export function packDeck(heroSet: string, packs: Set<string> | null = null): Dec
 		}
 	}
 	return { name: `${h.name} — box deck (${aspect[0].toUpperCase()}${aspect.slice(1)})`, hero: heroSet, aspect, cards }
+}
+
+// ───────── official precon decks (src/data/precons.json, built by scripts/build-data.mjs) ─────────
+
+export interface Precon {
+	set: string
+	name: string
+	hero: string
+	cards: Record<string, number>
+}
+export const PRECONS: Precon[] = Object.entries(preconsJson as Record<string, { name: string; hero: string; cards: Record<string, number> }>).map(([set, p]) => ({ set, ...p }))
+
+/** The hero's precon as a DeckList (kit cards are added by deckCodes, so they're left out here). */
+export function preconDeck(heroSet: string): DeckList {
+	const p = PRECONS.find((x) => x.set === heroSet)
+	if (!p) return packDeck(heroSet)
+	const h = heroes().find((x) => x.set === heroSet)!
+	const kit = new Set(h.kit.map(([c]) => c))
+	const cards: Record<string, number> = {}
+	let aspect = 'basic'
+	for (const [code, n] of Object.entries(p.cards)) {
+		const c = maybeCard(code)
+		if (!c || kit.has(code) || c.t === 'hero' || c.t === 'alter_ego') continue
+		cards[code] = n
+		if ((ASPECTS as readonly string[]).includes(c.f) || c.f === 'pool') aspect = c.f
+	}
+	return { name: p.name, hero: heroSet, aspect, cards }
 }

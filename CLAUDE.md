@@ -52,9 +52,19 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
   MarvelCDB import (`fromMarvelCdb`, public API `/api/public/decklist|deck/<id>`).
 - `src/engine/autoplay.ts` — a simple autoplayer for tests and `npm run sim` (not an opponent).
 - New-game wizard (`Screens.tsx`): 1 How to play (solo · two-handed solo · co-op on one device or online ·
-  1 v 1 on one device or online) → 2 Heroes (seat tabs; deck = box deck `packDeck()` / build by aspect
-  `starterDeck()` / MarvelCDB link) → 3 Villain (by expansion or all; 1 v 1: the two leaders) → 4 Ready
+  1 v 1 on one device or online; "New to Marvel Champions?" rules) → 2 Decks (seat tabs; every official
+  precon `PRECONS`/`preconDeck()` as a gallery with aspect/owned filters, or upload a MarvelCDB link) →
+  3 Villain (grid of every expansion → its scenarios, or search; 1 v 1: the two leaders) → 4 Ready
   (Standard/Expert, modular sets). Collection (📦) dims unowned packs. Online co-op: host + 1 friend in area 0.
+- Precons: `src/data/precons.json` (built by `scripts/build-data.mjs`): each hero box prints its 40-card deck
+  as one numbered run after the hero (stops at a gap or the next hero; hero-special decks left out); the
+  core set's five come from MarvelCDB's starter decklists 1–5 (`data/core-precons.json`).
+- Rules in context (`src/ui/rules.ts`, our own wording after the Rules Reference): `RULES` glossary (the 📖
+  Rules panel, searchable), `rulesForText()` (rules for keywords on the card in the viewer),
+  `ruleForPrompt()` (📖 note on prompts), `tipForLog()` (one-time tips the first time something happens;
+  "No more tips" → localStorage `champions.tips`).
+- Look: comic lettering — Bangers for titles and every button (black-outlined caption boxes with hard
+  shadows), POW starburst (`clip-path`) for each screen's main action (`button.primary`), Comic Neue text.
 - Screen sizes (`App.tsx useFit`): phones (coarse pointer, short side < 600) get a 960-wide stage and the
   `.pocket` CSS (compact cards, full-screen viewer/log sheets, 1 v 1 uses the table + enemy strip instead of
   the console); tablets/computers get 1440 wide, `.tall` bigger cards when the stage is ≥ 960 high (iPad).

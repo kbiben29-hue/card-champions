@@ -4,10 +4,11 @@
 //   3. Villain      (by expansion or all villains; 1v1: the two leaders)
 //   4. Ready        (difficulty, modular sets, summary → start)
 import { useMemo, useState } from 'react'
-import { ASPECT_NAME, ASPECTS, card, heroes, modularSets, PACKS, packInfo, scenarios, setInfo, type HeroInfo, type Scenario } from '../data/data'
-import { deckCodes, deckSize, fromMarvelCdb, packAspect, packDeck, starterDeck, type DeckList } from '../engine/decks'
+import { ASPECT_NAME, ASPECTS, card, heroes, modularSets, PACKS, packInfo, scenarios, setInfo, type Scenario } from '../data/data'
+import { deckCodes, deckSize, fromMarvelCdb, packAspect, PRECONS, preconDeck, type DeckList } from '../engine/decks'
 import type { PlayerSetup, Setup } from '../engine/engine'
 import { CardImg } from './Card'
+import { RULES } from './rules'
 
 export type Mode = 'solo' | 'two' | 'coop' | 'pvp'
 
@@ -31,7 +32,7 @@ export function Home({ onNew, onResume, resumeLabel, onJoin }: { onNew: () => vo
 	return (
 		<div className="screen home">
 			<div className="logo">
-				<span className="logo-a">CARD</span>
+				<span className="logo-a">MARVEL</span>
 				<span className="logo-b">CHAMPIONS</span>
 				<small>an unofficial table for Marvel Champions: The Card Game</small>
 			</div>
@@ -44,7 +45,7 @@ export function Home({ onNew, onResume, resumeLabel, onJoin }: { onNew: () => vo
 				)}
 				<button className="mode-card solo" onClick={onNew}>
 					<b>New game</b>
-					<span>Solo, two-handed, co-op or 1 v 1.</span>
+					<span>Solo, two-handed, co-op against the villain — or 1 v 1.</span>
 				</button>
 				<button className="mode-card join" onClick={onJoin}>
 					<b>Join a friend</b>
@@ -58,7 +59,7 @@ export function Home({ onNew, onResume, resumeLabel, onJoin }: { onNew: () => vo
 
 // ───────── the wizard ─────────
 
-type DeckKind = 'box' | 'starter' | 'cdb'
+type DeckKind = 'pre' | 'cdb'
 interface Seat {
 	name: string
 	hero: string
@@ -94,11 +95,10 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 	const [seats, setSeats] = useState<Seat[]>(() =>
 		[0, 1, 2, 3].map((k) => {
 			const hero = DEF_HEROES[(k + (onGuest ? 1 : 0)) % 4]
-			return { name: `Player ${k + 1}`, hero, kind: 'box' as DeckKind, aspect: packAspect(hero), cdb: null, cdbText: '' }
+			return { name: `Player ${k + 1}`, hero, kind: 'pre' as DeckKind, aspect: packAspect(hero), cdb: null, cdbText: '' }
 		}),
 	)
 	const [editing, setEditing] = useState(0)
-	const [picker, setPicker] = useState(false)
 	const allScs = useMemo(() => scenarios(), [])
 	const [scenario, setScenario] = useState('rhino')
 	const [regLeader, setRegLeader] = useState('iron_man_leader')
@@ -110,11 +110,11 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 	const nSeats = guest ? 1 : mode === 'solo' ? 1 : mode === 'two' ? 2 : mode === 'pvp' ? (online ? 1 : 2) : online ? 1 : count
 	const shown = seats.slice(0, nSeats)
 	const upd = (k: number, f: Partial<Seat>) => setSeats((s) => s.map((x, i) => (i === k ? { ...x, ...f } : x)))
-	const deckOf = (s: Seat): DeckList => (s.kind === 'cdb' && s.cdb ? s.cdb : s.kind === 'starter' ? starterDeck(s.hero, s.aspect, coll, 7) : packDeck(s.hero, coll))
+	const deckOf = (s: Seat): DeckList => (s.kind === 'cdb' && s.cdb ? s.cdb : preconDeck(s.hero))
 	const sc: Scenario = allScs.find((s) => s.id === scenario) ?? allScs[0]
 	const mods = modular ?? sc.modular.slice(0, Math.max(1, sc.modularCount))
 
-	const steps = guest ? ['Your hero'] : ['How to play', 'Heroes', mode === 'pvp' ? 'Leaders' : 'Villain', 'Ready']
+	const steps = guest ? ['Your deck'] : ['How to play', 'Decks', mode === 'pvp' ? 'Leaders' : 'Villain', 'Ready']
 	const seatName = (k: number) => (mode === 'pvp' ? (k === 0 ? 'Registration' : 'Resistance') : mode === 'two' ? `Hero ${k + 1}` : seats[k].name)
 
 	const start = () => {
@@ -199,12 +199,21 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 								{online && <small>You pick your own hero and {mode === 'pvp' ? 'the leaders' : 'the villain'}; your friend picks their hero when they join.</small>}
 							</div>
 						)}
+						<details className="manual-guide">
+							<summary>📖 New to Marvel Champions? How a game goes</summary>
+							{(mode === 'pvp' ? ['pvp', 'round', 'turn', 'villainPhase'] : ['round', 'turn', 'pay', 'forms', 'villainPhase', 'stage']).map((k) => (
+								<div key={k} className="ref-rule">
+									<b>{RULES[k].title}</b>
+									<p>{RULES[k].text}</p>
+								</div>
+							))}
+						</details>
 					</>
 				)}
 
 				{step === 1 && (
 					<>
-						<h2>{guest ? 'Choose your hero' : nSeats > 1 ? 'Choose the heroes' : 'Choose your hero'}</h2>
+						<h2>{guest ? 'Choose your deck' : nSeats > 1 ? 'Choose a deck for each hero' : 'Choose your deck'}</h2>
 						{nSeats > 1 && (
 							<div className="seat-tabs">
 								{shown.map((s, k) => (
@@ -221,57 +230,36 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 						{(() => {
 							const k = Math.min(editing, nSeats - 1)
 							const s = seats[k]
-							const h = heroes().find((x) => x.set === s.hero)!
-							const d = deckOf(s)
 							return (
-								<div className="seat-editor">
-									<div className="hero-big">
-										<button className="hero-face" onClick={() => setPicker(true)}>
-											<CardImg code={h.code} />
-											<span className="change">Change hero</span>
+								<div className="seat-editor2">
+									{mode === 'coop' && !online && (
+										<div className="row">
+											<label>
+												Name <input className="seat-name" value={s.name} onChange={(e) => upd(k, { name: e.target.value })} aria-label="Player name" />
+											</label>
+										</div>
+									)}
+									<div className="seg wide">
+										<button className={s.kind === 'pre' ? 'on' : ''} onClick={() => upd(k, { kind: 'pre' })}>
+											Premade decks
 										</button>
-										<div className="hero-meta">
-											{mode === 'coop' && !online && <input className="seat-name" value={s.name} onChange={(e) => upd(k, { name: e.target.value })} aria-label="Player name" />}
-											<h3>{h.name}</h3>
-											<small>
-												{card(h.alter).n} · {packInfo(h.pack)?.name}
-											</small>
-										</div>
+										<button className={s.kind === 'cdb' ? 'on' : ''} onClick={() => upd(k, { kind: 'cdb' })}>
+											Upload from MarvelCDB
+										</button>
 									</div>
-									<div className="deck-choice">
-										<h3>Deck</h3>
-										<div className="seg wide">
-											<button className={s.kind === 'box' ? 'on' : ''} onClick={() => upd(k, { kind: 'box' })}>
-												Box deck
-											</button>
-											<button className={s.kind === 'starter' ? 'on' : ''} onClick={() => upd(k, { kind: 'starter' })}>
-												Build by aspect
-											</button>
-											<button className={s.kind === 'cdb' ? 'on' : ''} onClick={() => upd(k, { kind: 'cdb' })}>
-												From MarvelCDB
-											</button>
-										</div>
-										{s.kind === 'box' && <p className="sub">The deck in {h.name}’s box: the hero’s own cards plus the {ASPECT_NAME[packAspect(h.set)] ?? packAspect(h.set)} and basic cards that come with it.</p>}
-										{s.kind === 'starter' && (
-											<>
-												<p className="sub">The hero’s own cards plus the best {ASPECT_NAME[s.aspect]} and basic cards from the packs you own.</p>
-												<div className="aspects">
-													{ASPECTS.map((a) => (
-														<button key={a} className={`asp asp-${a} ${s.aspect === a ? 'on' : ''}`} onClick={() => upd(k, { aspect: a })}>
-															{ASPECT_NAME[a]}
-														</button>
-													))}
-												</div>
-											</>
-										)}
-										{s.kind === 'cdb' && (
-											<CdbImport
-												seat={s}
-												onChange={(f) => upd(k, f)}
-												onLoaded={(dl) => upd(k, { cdb: dl, hero: dl.hero, aspect: dl.aspect })}
-											/>
-										)}
-										<DeckPeek d={d} />
+									{s.kind === 'pre' ? (
+										<DeckGallery value={s.hero} owned={owned} onPick={(set) => upd(k, { hero: set, aspect: packAspect(set), cdb: null })} />
+									) : (
+										<CdbImport seat={s} onChange={(f) => upd(k, f)} onLoaded={(dl) => upd(k, { cdb: dl, hero: dl.hero, aspect: dl.aspect })} />
+									)}
+									<div className="chosen">
+										<CardImg code={heroes().find((x) => x.set === s.hero)!.code} className="sum-img" />
+										<span>
+											<b>{deckOf(s).name}</b>
+											<br />
+											<small>{deckSize(deckOf(s))} cards</small>
+										</span>
+										<DeckPeek d={deckOf(s)} />
 									</div>
 								</div>
 							)
@@ -281,7 +269,7 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 
 				{step === 2 && mode !== 'pvp' && (
 					<VillainPicker
-						scs={allScs.filter((s) => !s.pvp || true)}
+						scs={allScs}
 						value={scenario}
 						owned={owned}
 						onPick={(id) => {
@@ -398,17 +386,6 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 				</button>
 			</div>
 
-			{picker && (
-				<HeroPicker
-					owned={owned}
-					onPick={(h) => {
-						const k = Math.min(editing, nSeats - 1)
-						upd(k, { hero: h.set, aspect: packAspect(h.set), cdb: null, kind: seats[k].kind === 'cdb' ? 'box' : seats[k].kind })
-						setPicker(false)
-					}}
-					onClose={() => setPicker(false)}
-				/>
-			)}
 			{showColl && (
 				<Collection
 					coll={coll}
@@ -461,35 +438,42 @@ function CdbImport({ seat, onChange, onLoaded }: { seat: Seat; onChange: (f: Par
 }
 
 function VillainPicker({ scs, value, onPick, owned }: { scs: Scenario[]; value: string; onPick: (id: string) => void; owned: (p: string) => boolean }) {
-	const [by, setBy] = useState<'pack' | 'all'>('pack')
-	const [q, setQ] = useState('')
 	const packs = PACKS.filter((p) => scs.some((s) => s.pack === p.code))
-	const [pack, setPack] = useState(() => scs.find((s) => s.id === value)?.pack ?? 'core')
-	const list = by === 'pack' ? scs.filter((s) => s.pack === pack) : scs.filter((s) => !q || (s.villainName + ' ' + s.name).toLowerCase().includes(q.toLowerCase()))
+	const [pack, setPack] = useState<string | null>(null)
+	const [q, setQ] = useState('')
+	const found = q ? scs.filter((s) => (s.villainName + ' ' + s.name).toLowerCase().includes(q.toLowerCase())) : null
+	if (pack === null && !found)
+		return (
+			<>
+				<h2>Choose an expansion</h2>
+				<div className="filters">
+					<input className="search" placeholder="…or search for a villain" value={q} onChange={(e) => setQ(e.target.value)} />
+				</div>
+				<div className="exp-grid">
+					{packs.map((p) => {
+						const list = scs.filter((s) => s.pack === p.code)
+						const cur = list.some((s) => s.id === value)
+						return (
+							<button key={p.code} className={`exp-tile ${cur ? 'picked' : ''} ${owned(p.code) ? '' : 'unowned'}`} onClick={() => setPack(p.code)}>
+								<CardImg code={list[0].standard[0]} />
+								<b>{p.name}</b>
+								<small className="count">
+									{list.length} scenario{list.length > 1 ? 's' : ''}
+									{p.date ? ` · ${p.date.slice(0, 4)}` : ''}
+								</small>
+							</button>
+						)
+					})}
+				</div>
+			</>
+		)
+	const list = found ?? scs.filter((s) => s.pack === pack)
 	return (
 		<>
-			<div className="row wrap">
-				<h2 className="grow">Choose a villain</h2>
-				<div className="seg">
-					<button className={by === 'pack' ? 'on' : ''} onClick={() => setBy('pack')}>
-						By expansion
-					</button>
-					<button className={by === 'all' ? 'on' : ''} onClick={() => setBy('all')}>
-						All villains
-					</button>
-				</div>
+			<div className="crumb">
+				<button onClick={() => (setPack(null), setQ(''))}>← All expansions</button>
+				<h2 className="grow">{found ? `Villains matching “${q}”` : packInfo(pack!)?.name}</h2>
 			</div>
-			{by === 'pack' ? (
-				<div className="pack-strip">
-					{packs.map((p) => (
-						<button key={p.code} className={`${pack === p.code ? 'on' : ''} ${owned(p.code) ? '' : 'unowned'}`} onClick={() => setPack(p.code)}>
-							{p.name}
-						</button>
-					))}
-				</div>
-			) : (
-				<input className="search" placeholder="Search villains" value={q} onChange={(e) => setQ(e.target.value)} />
-			)}
 			<div className="villain-grid">
 				{list.map((s) => (
 					<button key={s.id} className={`villain-tile ${value === s.id ? 'picked' : ''} ${owned(s.pack) ? '' : 'unowned'}`} onClick={() => onPick(s.id)}>
@@ -497,6 +481,42 @@ function VillainPicker({ scs, value, onPick, owned }: { scs: Scenario[]; value: 
 						<b>{s.villainName}</b>
 						<small>{s.name}</small>
 						{s.special && <em className="partial">partly automatic</em>}
+					</button>
+				))}
+			</div>
+		</>
+	)
+}
+
+function DeckGallery({ value, owned, onPick }: { value: string; owned: (p: string) => boolean; onPick: (heroSet: string) => void }) {
+	const [q, setQ] = useState('')
+	const [asp, setAsp] = useState<string | null>(null)
+	const [onlyOwned, setOnlyOwned] = useState(false)
+	const list = PRECONS.map((p) => ({ p, h: heroes().find((x) => x.set === p.set), d: preconDeck(p.set) }))
+		.filter(({ h }) => !!h)
+		.filter(({ p, h, d }) => (!q || (p.name + ' ' + card(h!.alter).n + ' ' + (packInfo(h!.pack)?.name ?? '')).toLowerCase().includes(q.toLowerCase())) && (!asp || d.aspect === asp) && (!onlyOwned || owned(h!.pack)))
+	return (
+		<>
+			<div className="filters">
+				<input placeholder="Search heroes" value={q} onChange={(e) => setQ(e.target.value)} />
+				{ASPECTS.map((a) => (
+					<button key={a} className={`asp asp-${a} ${asp === a ? 'on' : ''}`} onClick={() => setAsp(asp === a ? null : a)}>
+						{ASPECT_NAME[a]}
+					</button>
+				))}
+				<label className="nowrap">
+					<input type="checkbox" checked={onlyOwned} onChange={(e) => setOnlyOwned(e.target.checked)} /> Owned only
+				</label>
+			</div>
+			<div className="deck-grid">
+				{list.map(({ p, h, d }) => (
+					<button key={p.set} className={`deck-tile ${value === p.set ? 'picked' : ''} ${owned(h!.pack) ? '' : 'unowned'}`} onClick={() => onPick(p.set)}>
+						<span className={`asp-band ${d.aspect}`} />
+						<CardImg code={h!.code} />
+						<b>{h!.name}</b>
+						<small>
+							{ASPECT_NAME[d.aspect] ?? d.aspect} · {packInfo(h!.pack)?.name}
+						</small>
 					</button>
 				))}
 			</div>
@@ -535,35 +555,6 @@ function DeckPeek({ d }: { d: DeckList }) {
 					))}
 				</div>
 			)}
-		</div>
-	)
-}
-
-function HeroPicker({ onPick, onClose, owned }: { onPick: (h: HeroInfo) => void; onClose: () => void; owned: (p: string) => boolean }) {
-	const [q, setQ] = useState('')
-	const [onlyOwned, setOnlyOwned] = useState(false)
-	const list = heroes().filter((h) => (!q || (h.name + ' ' + card(h.alter).n + ' ' + (packInfo(h.pack)?.name ?? '')).toLowerCase().includes(q.toLowerCase())) && (!onlyOwned || owned(h.pack)))
-	return (
-		<div className="modal sheet" onClick={onClose}>
-			<div className="modal-box wide" onClick={(e) => e.stopPropagation()}>
-				<div className="row sticky">
-					<h3 className="grow">Choose a hero</h3>
-					<input placeholder="Search heroes or packs" value={q} onChange={(e) => setQ(e.target.value)} />
-					<label className="nowrap">
-						<input type="checkbox" checked={onlyOwned} onChange={(e) => setOnlyOwned(e.target.checked)} /> Owned
-					</label>
-					<button onClick={onClose}>Close</button>
-				</div>
-				<div className="hero-grid">
-					{list.map((h) => (
-						<button key={h.set} className={`hero-tile ${owned(h.pack) ? '' : 'unowned'}`} onClick={() => onPick(h)}>
-							<CardImg code={h.code} />
-							<b>{h.name}</b>
-							<small>{card(h.alter).n}</small>
-						</button>
-					))}
-				</div>
-			</div>
 		</div>
 	)
 }
