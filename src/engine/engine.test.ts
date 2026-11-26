@@ -273,3 +273,24 @@ test('encounter attachments add their printed stat modifier (Charge: +3 ATK)', (
 	charge.host = v
 	assert.equal(stat(g, v, 'atk'), base + 3)
 })
+
+test('"If that card\'s printed resource has:" rows follow the discarded card; "at the end of the round" waits', () => {
+	const hulk = parse(card('01050')).abilities[0].steps
+	assert.equal(hulk[1].k, 'branch')
+	let g = ready(game())
+	const v = g.areas[0].villain
+	// put a known [mental] card on top of the deck: Hulk's mental row discards Hulk (the source)
+	const pl = g.players[0]
+	const mental = Object.values(g.insts).find((x) => x.owner === 0 && card(x.code).res === 'm' && pl.deck.includes(x.uid))
+	if (mental) {
+		pl.deck = [mental.uid, ...pl.deck.filter((u) => u !== mental.uid)]
+		const src = pl.hand[0]
+		pl.hand = pl.hand.slice(1)
+		g.insts[src].zone = 'play'
+		g = resolveSteps(g, hulk, { area: 0, player: 0, src })
+		assert.equal(g.insts[src].zone, 'discard')
+	}
+	g = resolveSteps(g, [{ k: 'later', when: 'round', steps: [{ k: 'dmg', n: 2, to: 'villain' }] }], { area: 0, player: 0, src: v })
+	assert.equal(g.later?.length, 1)
+	assert.equal(g.insts[v].dmg, 0)
+})

@@ -138,6 +138,8 @@ export interface LogLine {
 
 export interface Game {
 	mode: 'coop' | 'pvp'
+	/** "At the end of the phase/round, …" effects waiting to happen */
+	later?: { when: 'phase' | 'round' | 'turn'; steps: Step[]; ctx: Ctx }[]
 	insts: Record<number, Inst>
 	next: number
 	players: Player[]

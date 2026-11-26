@@ -46,7 +46,11 @@ export type Step =
 	| { k: 'dealEncounter'; each: boolean }
 	| { k: 'bonus'; stat: 'atk' | 'thw' | 'def' | 'sch'; n: number; who: Who }
 	| { k: 'choose'; options: { label: string; steps: Step[] }[] }
-	| { k: 'search'; what: string; zone: 'deck' | 'deckDiscard' | 'encounter' }
+	| { k: 'search'; what: string; zone: 'deck' | 'deckDiscard' | 'encounter' | 'discard'; then?: 'hand' | 'play' | 'top' | 'shuffle'; top?: number; may?: boolean }
+	| { k: 'deckUntil'; what: string; then?: 'hand' | 'play' }
+	| { k: 'branch'; mode: 'res' | 'form' | 'ask'; rows: { cond: string; steps: Step[] }[] }
+	| { k: 'later'; when: 'phase' | 'round' | 'turn'; steps: Step[] }
+	| { k: 'ifPvp'; steps: Step[] }
 	| { k: 'flip' }
 	| { k: 'returnHand' }
 	| { k: 'discardSelf' }
@@ -241,6 +245,20 @@ function whoOf(s: string, names: string[]): Who | null {
 	if (NAMES.identities.has(s)) return 'hero'
 	if (isVillain(s)) return 'villain'
 	if (/^(the enemy leader|your leader)$/.test(s)) return 'villain'
+	// looser references that mean the same thing at a one-player table
+	if (/^(an identity|a hero|an alter-ego|the engaged player|the first player|that player|the active player|the player|your hero or alter-ego|that hero|the attacked hero)$/.test(s)) return 'hero'
+	if (/^(each identity|each player in hero form|each other player|each hero in play|all heroes)$/.test(s)) return 'eachHero'
+	if (/^(another|a different|a second|an?) (enemy|minion)( in play| engaged with you| engaged with that player)?$/.test(s)) return s.endsWith('minion') || /minion/.test(s) ? 'minion' : 'enemy'
+	if (/^(each enemy in play|each other enemy|all enemies|each enemy engaged with you)$/.test(s)) return 'eachEnemy'
+	if (/^(each minion in play|each other minion|all minions|each minion engaged with that player)$/.test(s)) return 'eachMinion'
+	if (/^(each friendly character in play|each character in play you control|each of your characters)$/.test(s)) return 'eachFriendly'
+	if (/^(another|a|an|1) (?:[\w.'-]+ )*?(?:or [\w.'-]+ )?(character|hero or ally)( you control| in play)?$/.test(s) && !/enemy|minion|villain/.test(s)) return 'character'
+	if (/^(another|a|an|1) (?:[\w.'-]+ )*?ally( you control| in play)?$/.test(s)) return 'ally'
+	if (/^(the attacking character|the attacking minion|the attacker|the defending enemy|the activating enemy|that villain|the chosen enemy|the chosen character|the chosen scheme|that side scheme|the attacked minion|the attacked villain)$/.test(s)) return 'that'
+	if (/^(a scheme in play|another scheme|a different scheme|a scheme with threat on it)$/.test(s)) return 'scheme'
+	if (/^(another side scheme|a different side scheme|a side scheme in play)$/.test(s)) return 'side'
+	if (/^(each scheme in play|each other scheme|all schemes)$/.test(s)) return 'eachScheme'
+	if (/^(him|her|them)$/.test(s)) return 'that'
 	// a card named on the card: "Criminal Enterprise", "the Red House side scheme"
 	const bare = s.replace(/^the /, '').replace(/ (side scheme|environment|main scheme|minion|attachment|support|upgrade|ally|villain)$/, '')
 	if (NAMES.cards.has(bare)) return `named:${bare}`
@@ -269,7 +287,7 @@ function sentence(raw: string, names: string[], villainNames: string[]): Step[] 
 		if (base && alt) return [{ k: 'choose', options: [{ label: `Yes: ${m[3]} (${m[2]})`, steps: alt }, { label: 'No', steps: base }] }]
 	}
 	// "… for each Drone minion engaged with you": the number is counted when it happens
-	if ((m = s.match(/^(.*?\b)(\d+)( .*?) for each (.+?)(?: (?:discarded|placed|dealt) this way)?$/i)) && !/this way$/i.test(s)) {
+	if ((m = s.match(/^(.*?\b)(\d+)( .*?) for each (.+?)(?: (?:discarded|placed|dealt) this way)?$/i)) && !/this way$/i.test(s) && !/for this (?:attack|activation|scheme)$/i.test(s)) {
 		const st = sentence(m[1] + m[2] + m[3], names, villainNames)
 		if (st && st.length === 1 && 'n' in st[0] && typeof (st[0] as { n: unknown }).n === 'number') {
 			;(st[0] as { n: Num }).n = { mul: Number(m[2]), count: m[4] }
@@ -546,8 +564,29 @@ function sentence(raw: string, names: string[], villainNames: string[]): Step[] 
 	if (/^if your nemesis minion does not enter/i.test(s)) return [{ k: 'surgeIfNot' }]
 	if ((m = s.match(/^(?:your hero|you|attached character|your identity) gets? \+(\d+) (ATK|THW|DEF)(?: (?:until the end of the phase|for this attack|this phase))?$/i)))
 		return [{ k: 'bonus', stat: m[2].toLowerCase() as 'atk', n: Number(m[1]), who: 'hero' }]
-	if ((m = s.match(/^search your deck(?: and discard pile)? for (.+?) and add it to your hand$/i)))
-		return [{ k: 'search', what: m[1].replace(/^(a|an|1)\s+/i, ''), zone: /discard pile/i.test(s) ? 'deckDiscard' : 'deck' }]
+	if ((m = s.match(/^search (?:your|their) deck(?:,? (?:and|or) (?:your |their )?discard pile)?(?:,? and hand)? for (.+?)(?:,| and)\s*(add (?:it|that card|them) to (?:your|their) hand|put (?:it|that card|them) into play(?: under (?:your|their) control)?)(?:,? (?:and|then) shuffle (?:your|their) deck)?$/i)))
+		return [{ k: 'search', what: m[1].replace(/^(a|an|1|one)\s+/i, ''), zone: /discard pile/i.test(s) ? 'deckDiscard' : 'deck', then: /play/i.test(m[2]) ? 'play' : 'hand' }]
+	if ((m = s.match(/^search the top (\d+) cards of your deck for (.+?)(?:,| and)\s*(add (?:it|that card) to your hand|put (?:it|that card) into play)(?:\.? shuffle .*|,? then (?:shuffle|discard) .*)?$/i)))
+		return [{ k: 'search', what: m[2].replace(/^(a|an|1|one)\s+/i, ''), zone: 'deck', top: Number(m[1]), then: /play/i.test(m[3]) ? 'play' : 'hand' }]
+	if ((m = s.match(/^(?:add|return) (?:a|an|1|one) (.+?) from your discard pile to your hand$/i))) return [{ k: 'search', what: m[1], zone: 'discard', then: 'hand' }]
+	if ((m = s.match(/^choose (?:a|an|1|one) (.+?) (?:card )?in your discard pile(?:,| and)\s*(add it to your hand|put it on top of your deck|shuffle it into your deck|put it into play)$/i)))
+		return [{ k: 'search', what: m[1], zone: 'discard', then: /hand/i.test(m[2]) ? 'hand' : /top/i.test(m[2]) ? 'top' : /shuffle/i.test(m[2]) ? 'shuffle' : 'play' }]
+	if ((m = s.match(/^put (?:a|an|1) (.+?) from your discard pile into play$/i))) return [{ k: 'search', what: m[1], zone: 'discard', then: 'play' }]
+	if ((m = s.match(/^discard cards from (?:the )?top of your deck until you discard (?:a|an) (.+?)(?:,? (?:then|and) (add (?:that card|it|that \w+) to your hand|put (?:that card|it|that \w+) into play))?$/i)))
+		return [{ k: 'deckUntil', what: m[1], then: !m[2] ? undefined : /hand/i.test(m[2]) ? 'hand' : 'play' }]
+	if ((m = s.match(/^discard cards from the top of the encounter deck until (?:you discard )?an? (.+?)(?: is discarded)?$/i))) return [{ k: 'encMill', n: 99, until: m[1] }]
+	if ((m = s.match(/^at the end of (?:the|this) (phase|round|turn|your turn),? (.+)$/i))) {
+		const st = sentence(m[2], names, villainNames)
+		if (st) return [{ k: 'later', when: m[1].toLowerCase().includes('turn') ? 'turn' : (m[1].toLowerCase() as 'phase'), steps: st }]
+	}
+	if ((m = s.match(/^in competitive mode,? (.+)$/i))) {
+		const st = sentence(m[1], names, villainNames)
+		return [{ k: 'ifPvp', steps: st ?? [{ k: 'manual', text: m[1] }] }]
+	}
+	if (/^in cooperative mode,? /i.test(s)) {
+		const st = sentence(s.replace(/^in cooperative mode,? /i, ''), names, villainNames)
+		if (st) return [{ k: 'ifPvp', steps: [] }, ...st]
+	}
 	if ((m = s.match(/^prevent (all|\d+) of (?:that|the) damage$/i))) return [{ k: 'prevent', n: m[1].toLowerCase() === 'all' ? 'all' : Number(m[1]) }]
 	if (/^cancel (its|that card's|the) "?when revealed"? (effects?|ability)/i.test(s) || /^cancel the effects of that card/i.test(s)) return [{ k: 'cancel' }]
 	if ((m = s.match(/^(?:you )?take (\d+) (?:indirect )?damage$/i))) return [{ k: 'dmg', n: Number(m[1]), to: 'hero' }]
@@ -589,6 +628,78 @@ function sentence(raw: string, names: string[], villainNames: string[]): Step[] 
 		const y = sentence(m[1], names, villainNames)
 		if (y && y.length) return [{ k: 'choose', options: [{ label: `Yes — ${m[1]}`, steps: y }, { label: 'No', steps: [] }] }]
 	}
+	return fallback(s, names, villainNames)
+}
+
+const VERBS = 'deal|draw|heal|place|remove|discard|ready|exhaust|stun|confuse|give|take|search|shuffle|return|put|reveal|gain|generate|attach|flip|change|resolve|move|play|add|look|choose|spend|defeat|cancel|prevent|reduce|swap|set'
+const third = (v: string) => (v === 'ready' ? 'readies' : /(sh|ch|ss|x)$/.test(v) ? v + 'es' : v + 's')
+const VERB3 = VERBS.split('|').map(third).join('|')
+
+/** Last tries: tidy the sentence up, split "A and B", "each player does X". */
+function fallback(s: string, names: string[], villainNames: string[]): Step[] | null {
+	const again = (t: string) => (t !== s && t.trim() ? sentence(t, names, villainNames) : null)
+	let m: RegExpMatchArray | null
+	// qualifiers the table takes care of (or that only cap a number)
+	const tidy = s
+		.replace(/\s*\((?:to a maximum of [^)]*|max \d+[^)]*|without looking|if able|in any order|in player order|in turn order|if any)\)/gi, '')
+		.replace(/,?\s*ignoring (?:any |the )?(?:crisis|patrol)[^,.]*/gi, '')
+		.replace(/\s+\(\[(?:crisis|boost|acceleration|amplify|hazard)\]\)/gi, '')
+		.replace(/\s+in play$/i, '')
+		.replace(/\s+if able$/i, '')
+		.trim()
+	if (tidy !== s) {
+		const t = again(tidy)
+		if (t) return t
+	}
+	if ((m = s.match(/^(generate (?:a|an|\d+) (?:\[\w+\] )?resources?(?: of any type)?) (?:for|that can only be (?:used|spent) (?:to pay )?for) .+$/i))) {
+		const t = again(m[1])
+		if (t) return t
+	}
+	if ((m = s.match(/^the player who (?:defeated|controls|completed) (?:this|that) [\w -]+? (may )?(.+)$/i))) {
+		const t = again(`${m[1] ? 'you may ' : 'that player '}${m[2]}`)
+		if (t) return t
+	}
+	if ((m = s.match(/^each player may (.+)$/i))) {
+		const st = sentence(`you may ${m[1].replace(/\btheir\b/gi, 'your').replace(/\bthem\b/gi, 'you')}`, names, villainNames)
+		if (st) return [{ k: 'forEachPlayer', steps: st }]
+	}
+	if ((m = s.match(/^you may discard this card to (.+)$/i))) {
+		const y = sentence(m[1], names, villainNames)
+		if (y) return [{ k: 'choose', options: [{ label: `Discard this card: ${m[1]}`, steps: [{ k: 'discardSelf' }, ...y] }, { label: 'No', steps: [] }] }]
+	}
+	if ((m = s.match(/^until the end of the (?:phase|round|turn),? (.+)$/i))) {
+		const t = again(m[1] + ' until the end of the phase')
+		if (t) return t
+	}
+	if ((m = s.match(/^(.+?) gets? \+(\d+) (ATK|THW|DEF|SCH)(?:,? (?:and )?\+(\d+) (ATK|THW|DEF|SCH))?(?:,? and \+(\d+) (ATK|THW|DEF|SCH))?(?: until the end of the (?:phase|round|turn)| this phase| this round)?$/i))) {
+		const w = /^each .*character/i.test(m[1]) ? 'eachFriendly' : whoOf(m[1], names)
+		if (w) {
+			const out: Step[] = []
+			for (const [n, st] of [[m[2], m[3]], [m[4], m[5]], [m[6], m[7]]]) if (n) out.push({ k: 'bonus', stat: st.toLowerCase() as 'atk', n: Number(n), who: w })
+			return out
+		}
+	}
+	// "A, then B" / "A and B" / "A; B"
+	const splits = [/,? then,? /i, /; /, new RegExp(`,? and (?=(?:${VERBS}) )`, 'i'), new RegExp(`, (?=(?:${VERBS}) )`, 'i')]
+	for (const re of splits) {
+		const parts = s.split(re)
+		if (parts.length > 1) {
+			const st = parts.map((x) => sentence(x, names, villainNames))
+			if (st.every(Boolean)) return st.flat() as Step[]
+		}
+	}
+	// "Each player draws 1 card." → each player, "draw 1 card"
+	if ((m = s.match(new RegExp(`^each (?:player|hero) (${VERB3}) (.+)$`, 'i')))) {
+		const v = m[1].toLowerCase().replace(/ies$/, 'y').replace(/(sh|ch|ss|x)es$/, '$1').replace(/s$/, '')
+		const st = sentence(`${v} ${m[2]}`.replace(/\btheir\b/gi, 'your').replace(/\bthemselves\b/gi, 'yourself').replace(/\bthem\b/gi, 'you'), names, villainNames)
+		if (st) return [{ k: 'forEachPlayer', steps: st }]
+	}
+	// "That player / the first player / you take(s) …"
+	if ((m = s.match(new RegExp(`^(?:that player|the first player|the engaged player|the active player|you|your hero|the player) (${VERB3}|${VERBS}) (.+)$`, 'i')))) {
+		const v = m[1].toLowerCase().replace(/ies$/, 'y').replace(/(sh|ch|ss|x)es$/, '$1').replace(/(?<!s)s$/, '')
+		const st = again(`${v} ${m[2]}`.replace(/\btheir\b/gi, 'your').replace(/\bthemselves\b/gi, 'yourself'))
+		if (st) return st
+	}
 	return null
 }
 
@@ -607,6 +718,25 @@ export function effect(text: string, names: string[], villainNames: string[] = [
 	let t = text.trim().replace(/^\s*-\s?(?=[A-Z])/gm, '• ')
 	const seq = t.match(/^make the following \d+ attacks in order:\s*([\s\S]*)$/i)
 	if (seq) t = seq[1].replace(/•\s*/g, '')
+	// "If that card's printed resource has:\n[physical] - Stun that enemy.\n…" / "If you are in:\n• hero form, …"
+	const br = t.match(/^([\s\S]*?)\b(?:if|depending on whether) ([^:\n]{0,90}?):\s*\n((?:\s*(?:•|\[(?:physical|energy|mental|wild)\])[\s\S]*))$/i)
+	if (br) {
+		const before = br[1].trim() ? effect(br[1], names, villainNames) : []
+		const head = br[2].toLowerCase()
+		const rows = br[3]
+			.split(/\n/)
+			.map((l) => l.replace(/^\s*•\s*/, '').trim())
+			.filter(Boolean)
+			.map((l) => {
+				const r = l.match(/^\[(physical|energy|mental|wild)\]\s*[-–—]\s*(.+)$/i)
+				if (r) return { cond: r[1].toLowerCase(), text: r[2] }
+				const c = l.match(/^(.+?)(?:\s+[-–—]\s+|,\s*)(.+)$/)
+				return c ? { cond: c[1].replace(/^if you are /i, ''), text: c[2] } : { cond: l, text: '' }
+			})
+		const mode = /resource/.test(head) ? 'res' : rows.every((r) => /(hero|alter-ego) form$/i.test(r.cond)) ? 'form' : 'ask'
+		const out = rows.map((r) => ({ cond: r.cond, steps: /^all of the above\.?$/i.test(r.text) ? [{ k: 'noop' } as Step] : effect(r.text, names, villainNames) }))
+		return [...before, { k: 'branch', mode, rows: out }]
+	}
 	if (/^•/.test(t)) t = 'Choose one:\n' + t
 	const choose = t.match(/^([\s\S]*?)choose(?: one)?:\s*\n?([\s\S]*)$/i)
 	if (choose && /•/.test(choose[2])) {
@@ -745,7 +875,7 @@ export function parse(c: CardData, alterName?: string): Parsed {
 		.map((l) => l.trim())
 		.filter(Boolean)) {
 		// bullet options belong to the line that says "Choose:"
-		if (/^(•|-\s?[A-Z])/.test(l) && lines.length) lines[lines.length - 1] += '\n' + l
+		if ((/^(•|-\s?[A-Z])/.test(l) || /^\[(physical|energy|mental|wild)\]\s*[-–—]/i.test(l)) && lines.length) lines[lines.length - 1] += '\n' + l
 		else lines.push(l)
 	}
 	if (c.t === 'obligation' && !lines.some((l) => /^(when revealed|forced|action|hero action)/i.test(l))) {

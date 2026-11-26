@@ -418,15 +418,79 @@ function startTurn(g: Game, p: number) {
 	log(g, `— ${g.players[p].name}'s turn (round ${g.round}) —`, p)
 }
 
+/** "an Avenger ally", "a support with a cost of 2 or less", "an identity-specific event", "a [[Tech]] upgrade" */
+export function cardFilter(what: string): (c: CardData) => boolean {
+	const w = what.toLowerCase().replace(/\[\[|\]\]/g, '').replace(/^(a|an|1|one|the|any) /, '').replace(/ card$/, '').trim()
+	const cost = w.match(/with a (?:printed )?(?:resource )?cost of (\d+) or (less|more|lower|higher)/)
+	const body = w.replace(/\s*with a (?:printed )?(?:resource )?cost of \d+ or \w+/, '').replace(/\s*(?:named|not named) .*$/, '').trim()
+	const notNamed = what.match(/not named (.+)$/i)?.[1]?.toLowerCase()
+	const alts = body.split(/\s+or\s+|,\s*/).map((x) => x.trim().replace(/^(a|an) /, '')).filter(Boolean)
+	const TYPES = ['ally', 'event', 'upgrade', 'support', 'resource', 'player side scheme', 'minion', 'treachery', 'attachment']
+	const ASP = ['aggression', 'justice', 'leadership', 'protection', 'basic', 'pool']
+	const one = (a: string) => (c: CardData) => {
+		const words = a.split(/\s+/)
+		const type = TYPES.find((t) => a.endsWith(t)) ?? (TYPES.includes(words[words.length - 1]) ? words[words.length - 1] : undefined)
+		if (type && c.t !== type.replace(/ /g, '_') && !(type === 'player side scheme' && c.t === 'player_side_scheme')) return false
+		let rest = type ? a.slice(0, a.length - type.length).trim() : a
+		if (!rest) return true
+		if (/^identity-specific|^hero-specific/.test(rest)) {
+			if (c.f !== 'hero') return false
+			rest = rest.replace(/^(identity|hero)-specific\s*/, '')
+		}
+		const asp = ASP.find((x) => rest.startsWith(x))
+		if (asp) {
+			if (c.f !== asp) return false
+			rest = rest.slice(asp.length).trim()
+		}
+		if (!rest) return true
+		const tr = (c.tr ?? '').toLowerCase().replace(/\./g, ' ')
+		const nm = c.n.toLowerCase()
+		if (nm === rest || nm.startsWith(rest + ' ') || nm === rest.replace(/^copy of /, '')) return true
+		return rest.split(/\s+and\s+/).every((t) => tr.split(/\s+/).includes(t) || tr.includes(t + ' ') || tr.endsWith(t))
+	}
+	const fs = alts.map(one)
+	return (c) => {
+		if (notNamed && c.n.toLowerCase() === notNamed) return false
+		if (cost) {
+			const v = c.cost ?? 0
+			if (/less|lower/.test(cost[2]) ? v > Number(cost[1]) : v < Number(cost[1])) return false
+		}
+		return fs.some((f) => f(c))
+	}
+}
+
+/** A player card goes into play under this player's control. */
+function putIntoPlay(g: Game, u: number, p: number) {
+	const x = I(g, u)
+	moveTo(g, u, 'play')
+	x.ctrl = p
+	x.ex = false
+	const c = card(x.code)
+	if (c.t === 'upgrade' || c.t === 'support') {
+		const at = parse(c).attach
+		if (at) x.host = attachHost(g, x.area, at) ?? undefined
+	}
+}
+
+/** run the waiting "at the end of …" effects */
+function runLater(g: Game, fits: (w: 'phase' | 'round' | 'turn', ctx: Ctx) => boolean) {
+	const now = (g.later ?? []).filter((l) => fits(l.when, l.ctx))
+	if (!now.length) return
+	g.later = (g.later ?? []).filter((l) => !now.includes(l))
+	for (const l of now.reverse()) pushSteps(g, l.steps, l.ctx)
+}
+
 function nextTurn(g: Game) {
 	const pl = g.players[g.active]
 	pl.done = true
+	runLater(g, (w, c) => w === 'turn' && c.player === pl.id)
 	const ar = g.areas[pl.area]
 	const order = rotate(ar.players, ar.first).filter((p) => !g.players[p].out)
 	const k = order.indexOf(g.active)
 	const nxt = order.slice(k + 1).find((p) => !g.players[p].done)
 	if (nxt !== undefined) return startTurn(g, nxt)
 	// end of this area's player phase: discard / draw / ready
+	runLater(g, (w, c) => w === 'phase' && c.area === ar.id)
 	endPlayerPhase(g, ar.id)
 	if (g.mode === 'pvp' && ar.id === 0 && g.phaseArea === 0) {
 		g.phaseArea = 1
@@ -459,6 +523,7 @@ function endPlayerPhase(g: Game, area: number) {
 }
 
 function endRound(g: Game) {
+	runLater(g, (w) => w === 'round' || w === 'phase')
 	for (const x of Object.values(g.insts)) if (x.bonus) x.bonus = undefined
 	for (const ar of g.areas) {
 		// Temporary cards
@@ -1599,6 +1664,54 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 			}
 			return next()
 		}
+		case 'branch': {
+			j.i++
+			let rows: number[] = []
+			if (s.mode === 'res') {
+				const u = ctx.that
+				const res = u !== undefined && g.insts[u] ? resourcesOf(g, u) : ''
+				const names: Record<string, string> = { physical: 'p', energy: 'e', mental: 'm', wild: 'w' }
+				if (res.includes('w')) rows = s.rows.map((_, k) => k)
+				else rows = s.rows.map((r, k) => (res.includes(names[r.cond] ?? '?') ? k : -1)).filter((k) => k >= 0)
+			} else if (s.mode === 'form') {
+				const f = g.players[p].form === 'hero' ? 'hero' : 'alter-ego'
+				rows = s.rows.map((r, k) => (r.cond.toLowerCase().startsWith(f) ? k : -1)).filter((k) => k >= 0)
+			} else {
+				// the player says which line applies
+				pushSteps(g, [{ k: 'choose', options: [...s.rows.map((r) => ({ label: r.cond, steps: r.steps })), { label: 'None of these', steps: [] }] }], ctx)
+				return false
+			}
+			for (const k of rows.reverse()) pushSteps(g, s.rows[k].steps, ctx)
+			return false
+		}
+		case 'later':
+			g.later = [...(g.later ?? []), { when: s.when === 'phase' && g.phase !== 'player' ? 'round' : s.when, steps: s.steps, ctx: { ...ctx } }]
+			return next()
+		case 'ifPvp':
+			j.i++
+			if (g.mode === 'pvp') pushSteps(g, s.steps, ctx)
+			return false
+		case 'deckUntil': {
+			const pl = g.players[p]
+			const ok = cardFilter(s.what)
+			let found: number | undefined
+			while (pl.deck.length) {
+				const u = pl.deck[0]
+				moveTo(g, u, 'discard')
+				if (ok(C(g, u))) {
+					found = u
+					break
+				}
+			}
+			ctx.that = found
+			ctx.did = found !== undefined
+			if (found !== undefined) {
+				log(g, `${srcName}: ${pl.name} discards down to ${nameOf(g, found)}.`, p)
+				if (s.then === 'hand') moveTo(g, found, 'hand')
+				if (s.then === 'play') putIntoPlay(g, found, p)
+			}
+			return next()
+		}
 		case 'win':
 			g.areas[area].result = 'win'
 			log(g, `${srcName}: the players win!`)
@@ -1848,28 +1961,34 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 		}
 		case 'search': {
 			const pl = g.players[p]
-			const what = s.what.toLowerCase().replace(/\s*card$/, '')
-			const pool = [...pl.deck, ...(s.zone === 'deckDiscard' ? pl.discard : [])]
-			const match = pool.filter((u) => {
-				const c = C(g, u)
-				const tr = (c.tr ?? '').toLowerCase()
-				return c.n.toLowerCase() === what || what.includes(c.n.toLowerCase()) || what.split(/\s+or\s+|\s+/).some((w) => w.length > 2 && (tr.includes(w) || c.t === w))
-			})
+			const ok = cardFilter(s.what)
+			const pool = s.zone === 'discard' ? [...pl.discard] : [...(s.top ? pl.deck.slice(0, s.top) : pl.deck), ...(s.zone === 'deckDiscard' ? pl.discard : [])]
+			const match = [...new Set(pool.filter((u) => ok(C(g, u))))]
 			if (!match.length) {
 				log(g, `${srcName}: nothing found for “${s.what}”.`, p)
 				ctx.did = false
+				if (s.zone !== 'discard') pl.deck = shuffle(g, pl.deck)
 				return next()
 			}
 			if (j.pick === undefined || !match.includes(j.pick)) {
 				if (match.length === 1) j.pick = match[0]
 				else {
-					ask(g, { who: p, kind: 'searchPick', options: [...new Set(match)], text: `${srcName}: choose a card to add to your hand.`, card: src })
+					const verb = s.then === 'play' ? 'put into play' : s.then === 'top' ? 'put on top of your deck' : s.then === 'shuffle' ? 'shuffle into your deck' : 'add to your hand'
+					ask(g, { who: p, kind: 'searchPick', options: match, text: `${srcName}: choose a card to ${verb}.`, card: src })
 					return false
 				}
 			}
-			moveTo(g, j.pick, 'hand')
-			pl.deck = shuffle(g, pl.deck)
-			log(g, `${pl.name} adds ${nameOf(g, j.pick)} to their hand.`, p)
+			const u = j.pick
+			ctx.that = u
+			if (s.then === 'play') putIntoPlay(g, u, p)
+			else if (s.then === 'top') {
+				moveTo(g, u, 'deck')
+			} else if (s.then === 'shuffle') {
+				moveTo(g, u, 'deck')
+				pl.deck = shuffle(g, pl.deck)
+			} else moveTo(g, u, 'hand')
+			if (s.zone !== 'discard' && s.then !== 'top') pl.deck = shuffle(g, pl.deck)
+			log(g, `${pl.name}: ${nameOf(g, u)} ${s.then === 'play' ? 'enters play' : s.then === 'top' ? 'goes on top of the deck' : s.then === 'shuffle' ? 'is shuffled into the deck' : 'goes to their hand'}.`, p)
 			ctx.did = true
 			return next()
 		}
@@ -1897,7 +2016,12 @@ function stepEffect(g: Game, j: Extract<Job, { k: 'steps' }>): boolean {
 		}
 		case 'mill': {
 			const pl = g.players[p]
-			for (let k = 0; k < s.n && pl.deck.length; k++) moveTo(g, pl.deck[0], 'discard')
+			for (let k = 0; k < s.n && pl.deck.length; k++) {
+				const u = pl.deck[0]
+				moveTo(g, u, 'discard')
+				ctx.that = u
+				log(g, `${srcName}: ${pl.name} discards ${nameOf(g, u)} from the top of their deck.`, p)
+			}
 			return next()
 		}
 		case 'attackGains':
