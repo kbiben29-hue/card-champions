@@ -27,8 +27,11 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
 - `src/data/data.ts` — typed access; `heroes()` (identity sides, kit, obligation, nemesis set),
   `scenarios()` read from each main scheme 1A's Contents text (villain stages for standard/expert, scheme
   deck, story sets, recommended modular sets) plus the Civil War / Synthezoid Smackdown leaders (with their
-  Registration/Resistance scheme decks). Pictures: `https://marvelcdb.com/bundles/cards/<code>.png|jpg|webp`,
-  with a text card when none loads.
+  Registration/Resistance scheme decks). Pictures: `https://marvelcdb.com/bundles/cards/<code>.png|jpg`.
+  MarvelCDB lacks ~400 pictures (many villain/scheme a/b sides): `scripts/check-images.mjs` (weekly, in
+  update-cards.yml) writes `src/data/images.json` {missing, jpg}; `imageUrls()` asks for the right file first,
+  `CardImg` retries twice on errors, missing ones get a comic-styled `TextCard`, and menus use
+  `pictureOf()` / `scenarioPicture()` to pick a card from the set that has a picture.
 - `src/engine/text.ts` — reads card text: keywords (Guard, Toughness, Retaliate 2, Incite 1, Uses (3)…),
   constant modifiers ("Your hero gets +1 ATK"), "Attach to …", and abilities (`timing`, Hero/Alter-Ego form,
   `(attack)` tag, trigger + `window`, costs before "→", limits) whose effect sentences become `Step`s.

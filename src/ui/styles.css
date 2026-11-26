@@ -3956,3 +3956,115 @@ input[type='checkbox'] {
 	font-size: 0.72rem;
 	white-space: nowrap;
 }
+
+/* ───────── text cards: a comic-styled card for the few pictures MarvelCDB doesn't have ───────── */
+div.textcard {
+	background:
+		radial-gradient(circle, rgba(0, 0, 0, 0.06) 1px, transparent 1.4px) 0 0 / 6px 6px,
+		#fbf4df !important;
+	color: #15131a !important;
+	border: 3px solid #000 !important;
+	border-radius: 7px;
+	padding: 0 !important;
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	overflow: hidden;
+	font-family: 'Comic Neue', 'Comic Sans MS', sans-serif;
+	font-size: clamp(8px, 0.6em, 12px);
+	line-height: 1.2;
+	text-align: left;
+	container-type: inline-size;
+}
+div.textcard .tc-head {
+	background: var(--tc, #3b3156);
+	color: #fff;
+	padding: 5% 7% 4%;
+	border-bottom: 2px solid #000;
+}
+div.textcard .tc-name {
+	font-family: 'Bangers', Impact, sans-serif;
+	font-size: clamp(10px, 11cqw, 20px);
+	letter-spacing: 0.03em;
+	line-height: 1;
+	text-shadow: 1px 1px 0 #000;
+}
+div.textcard .tc-type {
+	font-size: clamp(7px, 5.5cqw, 11px);
+	text-transform: uppercase;
+	color: rgba(255, 255, 255, 0.8);
+	margin-top: 2px;
+}
+div.textcard .tc-stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 3px;
+	padding: 4% 6% 0;
+}
+div.textcard .tc-stats span {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 2px;
+	background: #fff;
+	border: 1.5px solid #000;
+	border-radius: 4px;
+	padding: 0 3px;
+	font-size: clamp(6px, 5cqw, 10px);
+	font-weight: 700;
+}
+div.textcard .tc-stats b {
+	font-family: 'Bangers', Impact, sans-serif;
+	font-weight: 400;
+	font-size: 1.35em;
+}
+div.textcard .tc-text {
+	flex: 1;
+	overflow: hidden;
+	padding: 4% 7%;
+	font-size: clamp(7px, 6cqw, 12px);
+	color: #15131a;
+}
+div.textcard .tc-text b {
+	font-family: inherit;
+	font-size: inherit;
+}
+div.textcard .tc-res {
+	padding: 0 6% 4%;
+}
+div.textcard.t-villain,
+div.textcard.t-leader {
+	--tc: #b51f28;
+}
+div.textcard.t-minion {
+	--tc: #6a2c8c;
+}
+div.textcard.t-treachery,
+div.textcard.t-obligation {
+	--tc: #4b4b5a;
+}
+div.textcard.t-side_scheme,
+div.textcard.t-main_scheme {
+	--tc: #c77a0c;
+}
+div.textcard.t-attachment,
+div.textcard.t-environment {
+	--tc: #5b3a1e;
+}
+div.textcard.f-agg {
+	--tc: var(--agg);
+}
+div.textcard.f-jus {
+	--tc: #b8900f;
+}
+div.textcard.f-lea {
+	--tc: var(--lea);
+}
+div.textcard.f-pro {
+	--tc: var(--pro);
+}
+div.textcard.f-hero {
+	--tc: #5b3fb5;
+}
+div.textcard.f-bas {
+	--tc: #5d6270;
+}

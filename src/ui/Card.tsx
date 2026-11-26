@@ -12,21 +12,29 @@ export function CardImg({ code, className = '', alt }: { code: string; className
 	const c = maybeCard(code)
 	const urls = c ? imageUrls(c).filter((u) => !bad.has(u)) : []
 	const [k, setK] = useState(0)
+	const [retry, setRetry] = useState(0)
 	const known = ok.get(code)
 	const src = known ?? urls[k]
 	if (!c) return <div className={`textcard ${className}`}>?</div>
 	if (!src) return <TextCard c={c} className={className} />
 	return (
 		<img
+			key={`${src}#${retry}`}
 			className={`cimg ${className}`}
-			src={src}
+			src={retry ? `${src}?r=${retry}` : src}
 			alt={alt ?? c.n}
 			draggable={false}
-			loading="lazy"
+			decoding="async"
 			onLoad={() => ok.set(code, src)}
 			onError={() => {
+				// a dropped connection on a phone shouldn't lose the picture: try again twice, then the next file
+				if (retry < 2) {
+					setTimeout(() => setRetry((r) => r + 1), 700 * (retry + 1))
+					return
+				}
 				bad.add(src)
 				ok.delete(code)
+				setRetry(0)
 				setK((x) => x + 1)
 			}}
 		/>
@@ -46,26 +54,39 @@ const ASPECT_CLASS: Record<string, string> = {
 }
 
 export function TextCard({ c, className = '' }: { c: CardData; className?: string }) {
-	const stats: string[] = []
-	if (c.cost !== undefined) stats.push(`Cost ${c.cost}`)
-	if (c.thw !== undefined) stats.push(`THW ${c.thw}`)
-	if (c.atk !== undefined) stats.push(`ATK ${c.atk}`)
-	if (c.def !== undefined) stats.push(`DEF ${c.def}`)
-	if (c.rec !== undefined) stats.push(`REC ${c.rec}`)
-	if (c.sch !== undefined) stats.push(`SCH ${c.sch}`)
-	if (c.hp !== undefined) stats.push(`HP ${c.hp}`)
-	if (c.thr !== undefined) stats.push(`Threat ${c.thr}`)
+	const stats: [string, number | string][] = []
+	if (c.cost !== undefined) stats.push(['COST', c.cost])
+	if (c.thw !== undefined) stats.push(['THW', c.thw])
+	if (c.atk !== undefined) stats.push(['ATK', c.atk])
+	if (c.def !== undefined) stats.push(['DEF', c.def])
+	if (c.rec !== undefined) stats.push(['REC', c.rec])
+	if (c.sch !== undefined) stats.push(['SCH', c.sch])
+	if (c.hp !== undefined) stats.push(['HP', c.hp])
+	if (c.thr !== undefined) stats.push(['THREAT', c.thr])
+	else if (c.bt !== undefined) stats.push(['THREAT', c.bt])
 	return (
-		<div className={`textcard ${ASPECT_CLASS[c.f] ?? ''} ${LANDSCAPE.has(c.t) ? 'land' : ''} ${className}`}>
-			<div className="tc-name">
-				{c.u ? '◆ ' : ''}
-				{c.n}
+		<div className={`textcard ${ASPECT_CLASS[c.f] ?? ''} t-${c.t} ${LANDSCAPE.has(c.t) ? 'land' : ''} ${className}`}>
+			<div className="tc-head">
+				<div className="tc-name">
+					{c.u ? '◆ ' : ''}
+					{c.n}
+				</div>
+				<div className="tc-type">
+					{c.t.replace(/_/g, ' ')}
+					{c.stage ? ` · ${c.stage}` : ''}
+					{c.tr ? ` · ${c.tr}` : ''}
+				</div>
 			</div>
-			<div className="tc-type">
-				{c.t.replace(/_/g, ' ')}
-				{c.stage ? ` · ${c.stage}` : ''}
-			</div>
-			{stats.length > 0 && <div className="tc-stats">{stats.join(' · ')}</div>}
+			{stats.length > 0 && (
+				<div className="tc-stats">
+					{stats.map(([k, v]) => (
+						<span key={k}>
+							<b>{v}</b>
+							{k}
+						</span>
+					))}
+				</div>
+			)}
 			<div className="tc-text">
 				<RulesText text={c.x} />
 			</div>

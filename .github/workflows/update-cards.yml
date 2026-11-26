@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['scripts/build-data.mjs', '.github/workflows/update-cards.yml']
+    paths: ['scripts/build-data.mjs', 'scripts/check-images.mjs', '.github/workflows/update-cards.yml']
 
 permissions:
   contents: write
@@ -24,15 +24,16 @@ jobs:
           node-version: 22
       - run: git clone --depth 1 https://github.com/zzorba/marvelsdb-json-data /tmp/marvelsdb-json-data
       - run: node scripts/build-data.mjs /tmp/marvelsdb-json-data
+      - run: node scripts/check-images.mjs
       - name: Commit if cards changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git add src/data/cards.json src/data/precons.json
+          git add src/data/cards.json src/data/precons.json src/data/images.json
           if git diff --cached --quiet; then
             echo "No card changes."
           else
-            git add src/data/meta.json src/data/precons.json
+            git add src/data/meta.json src/data/precons.json src/data/images.json
             git commit -m "Update cards (MarvelCDB data)"
             git push
           fi

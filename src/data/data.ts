@@ -1,6 +1,7 @@
 // Typed access to the MarvelCDB card data (src/data/cards.json, built by scripts/build-data.mjs).
 import cardsJson from './cards.json'
 import metaJson from './meta.json'
+import imagesJson from './images.json'
 
 export type CardType =
 	| 'hero'
@@ -92,12 +93,23 @@ export const packInfo = (code: string) => PACK_BY.get(code)
 export const has = (c: CardData, flag: string) => !!c.fl?.includes(flag)
 export const setCards = (set: string) => CARDS.filter((c) => c.st === set)
 
-/** Card picture on MarvelCDB (reprints use the original's picture). */
+const IMG = imagesJson as { missing: string[]; jpg: string[] }
+const NO_PIC = new Set(IMG.missing)
+const JPG = new Set(IMG.jpg)
+/** Does MarvelCDB have a picture of this card? (src/data/images.json, checked weekly) */
+export const hasPicture = (code: string) => {
+	const c = BY.get(code)
+	return !!c && !NO_PIC.has(c.img ?? c.c)
+}
+/** Card picture on MarvelCDB (reprints use the original's picture): the file that exists, first. */
 export function imageUrls(c: CardData): string[] {
 	const code = c.img ?? c.c
 	const b = 'https://marvelcdb.com/bundles/cards/'
-	return [`${b}${code}.png`, `${b}${code}.jpg`, `${b}${code}.webp`]
+	if (NO_PIC.has(code)) return []
+	return JPG.has(code) ? [`${b}${code}.jpg`, `${b}${code}.png`] : [`${b}${code}.png`, `${b}${code}.jpg`]
 }
+/** The first of these cards that has a picture (for menus). */
+export const pictureOf = (...codes: string[]) => codes.find((c) => hasPicture(c)) ?? codes[0]
 
 export const ASPECTS = ['aggression', 'justice', 'leadership', 'protection'] as const
 export type Aspect = (typeof ASPECTS)[number]
@@ -297,3 +309,11 @@ export const modularSets = () => SETS.filter((s) => s.type === 'modular' && CARD
 
 /** "[mental]" → icon text used in the UI */
 export const RES_NAME: Record<string, string> = { m: 'mental', e: 'energy', p: 'physical', w: 'wild' }
+
+/** A picture for a scenario in menus: its villains first, then any card from its sets that has one. */
+export function scenarioPicture(s: Scenario): string {
+	const villains = CARDS.filter((c) => (c.t === 'villain' || c.t === 'leader') && c.st && s.sets.includes(c.st)).map((c) => c.c)
+	const inSets = CARDS.filter((c) => c.st && s.sets.includes(c.st))
+	const rest = [...inSets.filter((c) => c.t === 'minion'), ...inSets.filter((c) => !['main_scheme', 'side_scheme', 'minion'].includes(c.t))].map((c) => c.c)
+	return pictureOf(...s.standard, ...s.expert, ...villains, ...rest)
+}

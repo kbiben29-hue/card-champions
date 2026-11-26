@@ -4,7 +4,7 @@
 //   3. Villain      (by expansion or all villains; 1v1: the two leaders)
 //   4. Ready        (difficulty, modular sets, summary → start)
 import { useMemo, useState } from 'react'
-import { ASPECT_NAME, ASPECTS, card, heroes, modularSets, PACKS, packInfo, scenarios, setInfo, type Scenario } from '../data/data'
+import { ASPECT_NAME, ASPECTS, card, heroes, modularSets, PACKS, packInfo, pictureOf, scenarioPicture, scenarios, setInfo, type Scenario } from '../data/data'
 import { deckCodes, deckSize, fromMarvelCdb, packAspect, PRECONS, preconDeck, type DeckList } from '../engine/decks'
 import type { PlayerSetup, Setup } from '../engine/engine'
 import { CardImg } from './Card'
@@ -244,7 +244,7 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 							<div className="seat-tabs">
 								{shown.map((s, k) => (
 									<button key={k} className={editing === k ? 'on' : ''} onClick={() => setEditing(k)}>
-										<CardImg code={heroes().find((h) => h.set === s.hero)!.code} className="tab-img" />
+										<CardImg code={pictureOf(heroes().find((h) => h.set === s.hero)!.code, heroes().find((h) => h.set === s.hero)!.alter)} className="tab-img" />
 										<span>
 											<small>{seatName(k)}</small>
 											<b>{heroes().find((h) => h.set === s.hero)!.name}</b>
@@ -279,7 +279,7 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 										<CdbImport seat={s} onChange={(f) => upd(k, f)} onLoaded={(dl) => upd(k, { cdb: dl, hero: dl.hero, aspect: dl.aspect })} />
 									)}
 									<div className="chosen">
-										<CardImg code={heroes().find((x) => x.set === s.hero)!.code} className="sum-img" />
+										<CardImg code={pictureOf(heroes().find((x) => x.set === s.hero)!.code, heroes().find((x) => x.set === s.hero)!.alter)} className="sum-img" />
 										<span>
 											<b>{deckOf(s).name}</b>
 											<br />
@@ -319,7 +319,7 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 												const on = (side === 'registration' ? regLeader : resLeader) === s.id
 												return (
 													<button key={s.id} className={`villain-tile ${on ? 'picked' : ''}`} onClick={() => (side === 'registration' ? setRegLeader(s.id) : setResLeader(s.id))}>
-														<CardImg code={s.standard[0]} />
+														<CardImg code={scenarioPicture(s)} />
 														<b>{s.villainName}</b>
 													</button>
 												)
@@ -341,7 +341,7 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 									const h = heroes().find((x) => x.set === s.hero)!
 									return (
 										<div key={k} className="sum-row">
-											<CardImg code={h.code} className="sum-img" />
+											<CardImg code={pictureOf(h.code, h.alter)} className="sum-img" />
 											<span>
 												<b>{h.name}</b> <small>{seatName(k)}</small>
 												<br />
@@ -367,7 +367,7 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 								{mode !== 'pvp' && (
 									<>
 										<div className="sum-row">
-											<CardImg code={sc.standard[0]} className="sum-img" />
+											<CardImg code={scenarioPicture(sc)} className="sum-img" />
 											<span>
 												<b>{sc.villainName}</b> — {sc.name}
 												<br />
@@ -481,7 +481,7 @@ function VillainPicker({ scs, value, onPick, owned }: { scs: Scenario[]; value: 
 						const cur = list.some((s) => s.id === value)
 						return (
 							<button key={p.code} className={`exp-tile ${cur ? 'picked' : ''} ${owned(p.code) ? '' : 'unowned'}`} onClick={() => setPack(p.code)}>
-								<CardImg code={list[0].standard[0]} />
+								<CardImg code={pictureOf(...list.map(scenarioPicture))} />
 								<b>{p.name}</b>
 								<small className="count">
 									{list.length} scenario{list.length > 1 ? 's' : ''}
@@ -503,7 +503,7 @@ function VillainPicker({ scs, value, onPick, owned }: { scs: Scenario[]; value: 
 			<div className="villain-grid">
 				{list.map((s) => (
 					<button key={s.id} className={`villain-tile ${value === s.id ? 'picked' : ''} ${owned(s.pack) ? '' : 'unowned'}`} onClick={() => onPick(s.id)}>
-						<CardImg code={s.standard[0]} />
+						<CardImg code={scenarioPicture(s)} />
 						<b>{s.villainName}</b>
 						<small>{s.name}</small>
 						{s.special && <em className="partial">partly automatic</em>}
@@ -538,7 +538,7 @@ function DeckGallery({ value, owned, onPick }: { value: string; owned: (p: strin
 				{list.map(({ p, h, d }) => (
 					<button key={p.set} className={`deck-tile ${value === p.set ? 'picked' : ''} ${owned(h!.pack) ? '' : 'unowned'}`} onClick={() => onPick(p.set)}>
 						<span className={`asp-band ${d.aspect}`} />
-						<CardImg code={h!.code} />
+						<CardImg code={pictureOf(h!.code, h!.alter)} />
 						<b>{h!.name}</b>
 						<small>
 							{ASPECT_NAME[d.aspect] ?? d.aspect} · {packInfo(h!.pack)?.name}
