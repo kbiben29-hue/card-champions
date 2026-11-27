@@ -8,6 +8,7 @@
 import type * as React from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { animateArrival, effectsOn, type Fx, FxLayer, HERO_FX, heroFx, setEffects } from './fx'
 import { card, has } from '../data/data'
 import {
 	actionsFor,
@@ -283,47 +284,98 @@ export function Board({
 	const dragProps = (uid: number, mine: boolean) =>
 		mine && canControl(me) ? { onPointerDown: (e: React.PointerEvent) => onDown(uid, e) } : { onClick: () => tapCard(uid) }
 
-	// ── cards landing on the table: a slam with cracks in the ground
+	// ── cards landing on the table and heroes hitting enemies, each in their own style (see fx.tsx)
 	const slamAt = useRef<{ uid: number; x: number; y: number; t: number } | null>(null)
-	const [slams, setSlams] = useState<Slam[]>([])
+	const [fxs, setFxs] = useState<Fx[]>([])
 	const prevG = useRef(g)
 	useEffect(() => {
 		const before = prevG.current
 		prevG.current = g
-		if (before === g || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+		if (before === g || !effectsOn() || matchMedia('(prefers-reduced-motion: reduce)').matches) return
 		const LAND = ['play', 'engaged', 'side', 'attached', 'env']
 		const fresh = Object.values(g.insts).filter((x) => LAND.includes(x.zone) && (!before.insts[x.uid] || !LAND.includes(before.insts[x.uid].zone)))
-		if (!fresh.length) return
+		// enemies my side just hurt (or whose scheme lost threat) during my turn
+		const myTurnNow = g.phase === 'player' && g.active === me && before.active === me
+		const hurt = myTurnNow
+			? Object.values(g.insts).filter((x) => x.area === area && (x.zone === 'villain' || x.zone === 'engaged') && before.insts[x.uid] && (x.dmg > before.insts[x.uid].dmg || (before.insts[x.uid].tough > 0 && x.tough === 0)))
+			: []
+		const thwarted = myTurnNow ? Object.values(g.insts).filter((x) => x.area === area && (x.zone === 'main' || x.zone === 'side') && before.insts[x.uid] && x.thr < before.insts[x.uid].thr) : []
+		if (!fresh.length && !hurt.length && !thwarted.length) return
+		const setOf = (p: number) => (g.players[p] ? card(g.players[p].hero).st : undefined)
 		requestAnimationFrame(() => {
-			const add: Slam[] = []
+			const add: Fx[] = []
+			const rect = (u: number) => (document.querySelector(`.board [data-uid="${u}"]:not(.hcard)`) as HTMLElement | null)?.getBoundingClientRect() ?? null
+			const deck = (document.querySelector('.board .pile-back.mine') as HTMLElement | null)?.getBoundingClientRect() ?? null
+			let shake = false
 			for (const x of fresh.slice(0, 4)) {
 				const el = document.querySelector(`.board [data-uid="${x.uid}"]:not(.hcard)`) as HTMLElement | null
 				if (!el) continue
-				// your own cards: bring the spot where it lands into view
 				if (x.ctrl === me) el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-				const r = el.getBoundingClientRect()
 				const c = card(x.code)
-				const mine = x.ctrl === me && x.zone === 'play'
-				const big = (c.cost ?? 0) >= 3 || c.t === 'minion' || /hulk|giant|thing/i.test(c.n)
-				add.push({ key: `${x.uid}-${performance.now()}`, x: r.left + r.width / 2, y: r.top + r.height * 0.82, w: r.width, big, mine, seed: x.uid })
-				el.classList.remove('slam-in')
-				void el.offsetWidth
-				el.classList.add('slam-in')
-				setTimeout(() => el.classList.remove('slam-in'), 700)
+				const enemy = c.f === 'encounter' || x.owner < 0
+				const hf = heroFx(c.st && HERO_FX[c.st] ? c.st : setOf(x.ctrl), enemy)
+				const r = el.getBoundingClientRect()
+				const big = (c.cost ?? 0) >= 3 || c.t === 'minion' || hf.land === 'slam'
+				animateArrival(el, enemy ? 'drop' : hf.arrive, deck)
+				const delay = !enemy && hf.arrive === 'swoop' ? 520 : 0
+				const item: Fx = {
+					key: `${x.uid}-${performance.now()}`,
+					kind: hf.land,
+					x: r.left + r.width / 2,
+					y: r.top + r.height / 2,
+					w: r.width,
+					h: r.height,
+					color: hf.color,
+					color2: hf.color2,
+					word: !enemy && x.ctrl === me && ((c.cost ?? 0) >= 2 || c.t === 'ally') ? hf.word : undefined,
+					big,
+					seed: x.uid,
+				}
+				if (delay) setTimeout(() => setFxs((s) => [...s, item]), delay)
+				else add.push(item)
+				if (hf.land === 'slam' && big) shake = true
+				if (delay) setTimeout(() => setFxs((s) => s.filter((z) => z !== item)), delay + 1300)
+			}
+			// my hits: Cyclops' optic blast from his card to the enemy, Wolverine's claws on it, webs, lightning…
+			const mineEl = () => rect(g.players[me]?.ident ?? -1)
+			const hf = heroFx(setOf(me))
+			for (const x of [...hurt, ...thwarted].slice(0, 3)) {
+				;(document.querySelector(`.board [data-uid="${x.uid}"]:not(.hcard)`) as HTMLElement | null)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+				const r = rect(x.uid)
+				if (!r) continue
+				const isThwart = thwarted.includes(x)
+				const kind = isThwart ? (hf.hit === 'beam' || hf.hit === 'lightning' ? hf.hit : 'rings') : hf.hit
+				add.push({
+					key: `hit-${x.uid}-${performance.now()}`,
+					kind,
+					x: r.left + r.width / 2,
+					y: r.top + r.height / 2,
+					w: r.width,
+					h: r.height,
+					color: hf.color === '#ffffff' && kind !== 'web' ? (hf.color2 ?? '#ffd23f') : hf.color,
+					color2: hf.color2,
+					fx: mineEl() ? mineEl()!.left + mineEl()!.width / 2 : undefined,
+					fy: mineEl() ? mineEl()!.top + mineEl()!.height * 0.3 : undefined,
+					word: isThwart ? undefined : hf.word,
+					big: true,
+					seed: x.uid + g.round * 7,
+				})
+				if (kind === 'slam') shake = true
 			}
 			slamAt.current = null
-			if (!add.length) return
-			setSlams((s) => [...s, ...add])
-			if (add.some((a) => a.big)) {
+			if (add.length) {
+				setFxs((s) => [...s, ...add])
+				setTimeout(() => setFxs((s) => s.filter((z) => !add.includes(z))), 1300)
+			}
+			if (shake) {
 				const felt = document.querySelector('.board') as HTMLElement | null
 				felt?.classList.remove('shake')
 				void felt?.offsetWidth
 				felt?.classList.add('shake')
 				setTimeout(() => felt?.classList.remove('shake'), 450)
 			}
-			setTimeout(() => setSlams((s) => s.filter((z) => !add.includes(z))), 1300)
 		})
-	}, [g, me])
+	}, [g, me, area])
 
 	const tile = (x: Inst, opts: { size?: 'v' | 'm' | 's' | 'land' | 'land-s'; mine?: boolean; showHp?: boolean; label?: boolean } = {}) => (
 		<Tile key={x.uid} g={g} x={x} size={opts.size ?? 'm'} label={opts.label} glow={glow.has(x.uid)} selected={sel === x.uid} marked={marked.includes(x.uid)} {...dragProps(x.uid, !!opts.mine)} />
@@ -779,10 +831,7 @@ export function Board({
 			{statusBar}
 			{tabletop}
 			{handbar}
-			{createPortal(
-				slams.map((z) => <SlamFx key={z.key} z={z} />),
-				document.body,
-			)}
+			{createPortal(<FxLayer items={fxs} />, document.body)}
 			<div className="trays">
 				{prompt}
 				{waiting}
@@ -851,46 +900,6 @@ function Spotlight({ code }: { code: string }) {
 	return (
 		<div className={`spotlight ${isLandscape(code) ? 'land' : ''}`}>
 			<CardImg code={code} />
-		</div>
-	)
-}
-
-type Slam = { key: string; x: number; y: number; w: number; big: boolean; mine: boolean; seed: number }
-/** Cracks in the ground and a puff of dust where a card lands. */
-function SlamFx({ z }: { z: Slam }) {
-	const size = z.w * (z.big ? 3.2 : 2.4)
-	// jagged cracks radiating from the impact, different for every card
-	let r = z.seed * 9301 + 49297
-	const rnd = () => ((r = (r * 9301 + 49297) % 233280) / 233280)
-	const n = z.big ? 9 : 6
-	const cracks: string[] = []
-	for (let i = 0; i < n; i++) {
-		const a = (i / n) * Math.PI * 2 + rnd() * 0.5
-		let px = 50
-		let py = 50
-		const pts = [`${px},${py}`]
-		const len = 22 + rnd() * (z.big ? 26 : 16)
-		for (let k = 1; k <= 4; k++) {
-			const d = (len * k) / 4
-			const j = (rnd() - 0.5) * 0.6
-			px = 50 + Math.cos(a + j) * d
-			py = 50 + Math.sin(a + j) * d * 0.55
-			pts.push(`${px.toFixed(1)},${py.toFixed(1)}`)
-		}
-		cracks.push(pts.join(' '))
-	}
-	return (
-		<div className={`slam ${z.big ? 'big' : ''}`} style={{ left: z.x - size / 2, top: z.y - size / 2, width: size, height: size }} aria-hidden>
-			<svg viewBox="0 0 100 100">
-				<ellipse className="slam-ring" cx="50" cy="50" rx="30" ry="15" />
-				{cracks.map((p, i) => (
-					<polyline key={i} className="slam-crack" points={p} style={{ animationDelay: `${i * 12}ms` }} />
-				))}
-			</svg>
-			{Array.from({ length: z.big ? 10 : 6 }, (_, i) => (
-				<i key={i} className="slam-dust" style={{ ['--a' as string]: `${(i / (z.big ? 10 : 6)) * 360 + rnd() * 20}deg`, ['--d' as string]: `${30 + rnd() * 30}%` }} />
-			))}
-			{z.big && z.mine && <b className="slam-word">{['WHAM!', 'BOOM!', 'KRAK!', 'THOOM!'][z.seed % 4]}</b>}
 		</div>
 	)
 }
@@ -1319,6 +1328,7 @@ function Viewer({
 }
 
 function Reference({ onClose, tips, setTips }: { onClose: () => void; tips: boolean; setTips: (v: boolean) => void }) {
+	const [fxOn, setFxOn] = useState(effectsOn())
 	const [q, setQ] = useState('')
 	const order = ['round', 'turn', 'pay', 'forms', 'handsize', 'villainPhase', 'activation', 'defend', 'boost', 'encounter', 'threat', 'stage']
 	const rest = Object.keys(RULES).filter((k) => !order.includes(k))
@@ -1333,6 +1343,9 @@ function Reference({ onClose, tips, setTips }: { onClose: () => void; tips: bool
 				<input placeholder="Search the rules" value={q} onChange={(e) => setQ(e.target.value)} />
 				<label className="nowrap">
 					<input type="checkbox" checked={tips} onChange={(e) => setTips(e.target.checked)} /> Tips during play
+				</label>
+				<label className="nowrap">
+					<input type="checkbox" checked={fxOn} onChange={(e) => (setEffects(e.target.checked), setFxOn(e.target.checked))} /> Character effects
 				</label>
 			</div>
 			{list.map((r) => (

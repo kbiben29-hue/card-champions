@@ -4,6 +4,7 @@ import { Board } from './ui/Board'
 import { Home, JoinScreen, NewGame, type SetupResult } from './ui/Screens'
 import { hostGame, joinGame, newGameCode, type Conn, type Host } from './net/transport'
 import { JoinQr } from './ui/Qr'
+import { FxDemo } from './ui/fx'
 import { clearJoinFromUrl, isGuestMsg, isHostMsg, joinCodeFromUrl, joinLink, type HostMsg } from './net/online'
 
 /** Phones (touch, short side under 600px) get the compact "pocket" table; iPads and computers the full one. */
@@ -62,6 +63,11 @@ function useFit(wrap: RefObject<HTMLDivElement | null>, active: boolean) {
 const actor = (g: Game) => (g.queue[0] ? g.queue[0].who : g.active)
 
 export default function App() {
+	if (typeof location !== 'undefined' && location.search.includes('fxdemo')) return <FxDemo />
+	return <TheApp />
+}
+
+function TheApp() {
 	const [session, setSession] = useState<Session | null>(null)
 	const [screen, setScreen] = useState<{ k: 'home' } | { k: 'new'; host?: boolean } | { k: 'join'; code?: string } | { k: 'lobby' }>(() => {
 		const j = joinCodeFromUrl()

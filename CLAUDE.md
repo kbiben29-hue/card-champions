@@ -89,7 +89,10 @@ npm run data -- /path/to/marvelsdb-json-data   # rebuild src/data/cards.json + m
   the console); tablets/computers get 1440 wide, `.tall` bigger cards when the stage is ≥ 960 high (iPad).
   The stage sits inside the safe area (notch / home bar).
 - `src/ui/` — `Board.tsx` (both layouts, drag & drop with window-level pointer listeners — `onDown`/`drop`,
-  landing animation `SlamFx` (cracks, dust, WHAM, table shake) for any card that newly lands on the table, tap → `Viewer` with actions and
+  character effects from `src/ui/fx.tsx`: `HERO_FX` per hero set (land / hit effect, arrival, colours, sound
+  word — Hulk smash, Cyclops red beam, Spider-Man webs, fliers swoop from the deck, Strange's sigil,
+  Wolverine's claws, Nightcrawler's BAMF…), played when a card lands and when your hero hurts an enemy or
+  thwarts; `?fxdemo` / `?fxdemo=hit` shows them all; on/off in the Rules panel (localStorage `champions.fx`), tap → `Viewer` with actions and
   table tools, `PromptBox`, `Reference` rules card, log), `Screens.tsx` (home, new game: heroes, aspects,
   deck import, collection, villain + modular + expert, Civil War leaders, join), `Card.tsx` (pictures with
   fallback text cards, rules text with icons), `styles.css`.

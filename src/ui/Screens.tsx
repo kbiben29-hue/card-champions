@@ -186,7 +186,7 @@ export function NewGame({
 						const idx = guest ? 1 : k
 						return (
 							<button key={s} className={`wiz-step ${idx === step ? 'on' : ''} ${idx < step ? 'done' : ''}`} disabled={idx > step} onClick={() => setStep(idx)}>
-								<span>{k + 1}</span> {s}
+								<span>{k + 1}</span> <em className="wiz-step-name">{s}</em>
 							</button>
 						)
 					})}
