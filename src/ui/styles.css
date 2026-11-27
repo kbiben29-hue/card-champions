@@ -4971,3 +4971,460 @@ div.textcard.f-bas {
 	background: linear-gradient(90deg, #1f4fd8, #7c1fd8 50%, #c4161c) !important;
 	border-top: 4px solid #000 !important;
 }
+
+/* ───────── the show (show.tsx) ───────── */
+/* intro: the villain's splash page */
+.intro {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	overflow: hidden;
+	padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+	background:
+		radial-gradient(rgba(0, 0, 0, 0.25) 1.4px, transparent 1.8px) 0 0 / 8px 8px,
+		radial-gradient(circle at 70% 40%, #ff4b3e, #8f1020 55%, #2a0610);
+	display: grid;
+	grid-template-rows: 1fr auto auto auto;
+	place-items: center;
+	animation: intro-out 0.4s ease-in 3.8s forwards;
+	cursor: pointer;
+}
+.intro-rays {
+	position: absolute;
+	inset: -50%;
+	background: repeating-conic-gradient(from 0deg at 50% 50%, rgba(255, 210, 63, 0.18) 0 6deg, transparent 6deg 14deg);
+	animation: rays 6s linear infinite;
+}
+@keyframes rays {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.intro-villain {
+	position: relative;
+	width: min(52vw, 300px, 38vh);
+	transform: rotate(-4deg);
+	animation: intro-villain 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+	align-self: end;
+	margin-top: 4vh;
+}
+.intro-villain img,
+.intro-villain .textcard {
+	width: 100%;
+	border: 5px solid #000;
+	border-radius: 12px;
+	box-shadow: 10px 12px 0 #000;
+}
+@keyframes intro-villain {
+	from {
+		transform: translateY(-60vh) rotate(-20deg) scale(1.6);
+	}
+}
+.intro-title {
+	position: relative;
+	text-align: center;
+	margin-top: 10px;
+	animation: intro-pop 0.5s 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.intro-title small {
+	display: block;
+	font-family: 'Bangers', Impact, sans-serif;
+	letter-spacing: 4px;
+	color: #ffd23f;
+	text-shadow: 2px 2px 0 #000;
+	font-size: 18px;
+}
+.intro-title b {
+	display: block;
+	font-family: 'Bangers', Impact, sans-serif;
+	font-weight: 400;
+	font-size: clamp(48px, 15vw, 96px);
+	line-height: 0.95;
+	color: #fff;
+	-webkit-text-stroke: 3px #000;
+	text-shadow: 6px 6px 0 #000;
+	letter-spacing: 2px;
+	transform: skew(-6deg);
+}
+.intro-title em {
+	display: inline-block;
+	margin-top: 6px;
+	font-style: normal;
+	font-family: 'Comic Neue', sans-serif;
+	font-weight: 700;
+	background: #fff;
+	color: #000;
+	border: 3px solid #000;
+	padding: 2px 10px;
+	box-shadow: 3px 3px 0 #000;
+	transform: rotate(-1.5deg);
+}
+.intro-vs {
+	position: relative;
+	font-family: 'Bangers', Impact, sans-serif;
+	font-size: 44px;
+	color: #000;
+	background: #ffd23f;
+	padding: 10px 26px;
+	clip-path: polygon(0% 22%, 12% 0%, 26% 16%, 42% 0%, 56% 14%, 72% 0%, 86% 16%, 100% 8%, 92% 40%, 100% 72%, 86% 100%, 70% 86%, 54% 100%, 38% 86%, 22% 100%, 10% 84%, 0% 92%, 6% 56%);
+	margin: 8px 0;
+	animation: intro-pop 0.45s 0.85s cubic-bezier(0.2, 1.8, 0.4, 1) both;
+}
+.intro-heroes {
+	position: relative;
+	display: flex;
+	gap: 14px;
+	justify-content: center;
+	align-self: start;
+	animation: intro-heroes 0.55s 1.05s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+.intro-hero {
+	width: min(26vw, 130px, 18vh);
+	text-align: center;
+	transform: rotate(3deg);
+}
+.intro-hero:nth-child(even) {
+	transform: rotate(-3deg);
+}
+.intro-hero img,
+.intro-hero .textcard {
+	width: 100%;
+	border: 4px solid #000;
+	border-radius: 10px;
+	box-shadow: 6px 7px 0 #000;
+}
+.intro-hero b {
+	white-space: nowrap;
+	margin-left: -40px;
+	margin-right: -40px;
+	display: block;
+	font-family: 'Bangers', Impact, sans-serif;
+	font-weight: 400;
+	font-size: 22px;
+	color: #fff;
+	text-shadow: 2px 2px 0 #000;
+	margin-top: 4px;
+}
+.intro-tap {
+	position: relative;
+	margin: 10px 0 14px;
+	font-size: 13px;
+	color: rgba(255, 255, 255, 0.75);
+	animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes intro-pop {
+	from {
+		transform: scale(0.2) rotate(-10deg);
+		opacity: 0;
+	}
+}
+@keyframes intro-heroes {
+	from {
+		transform: translateY(40vh);
+		opacity: 0;
+	}
+}
+@keyframes intro-out {
+	to {
+		opacity: 0;
+		transform: scale(1.1);
+		visibility: hidden;
+	}
+}
+@keyframes blink {
+	50% {
+		opacity: 0.3;
+	}
+}
+
+/* big phase / attack banners */
+.bigbanner {
+	position: fixed;
+	left: 0;
+	right: 0;
+	top: 36%;
+	z-index: 420;
+	pointer-events: none;
+	display: flex;
+	justify-content: center;
+	animation: bb-life 1.5s ease forwards;
+}
+.bb-lines {
+	position: absolute;
+	inset: -40px 0;
+	background: repeating-linear-gradient(90deg, transparent 0 18px, rgba(255, 255, 255, 0.22) 18px 20px);
+	mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+	-webkit-mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+	animation: bb-lines 1.5s linear forwards;
+}
+.bb-box {
+	position: relative;
+	transform: skew(-10deg) rotate(-2deg);
+	background: #e23636;
+	border: 4px solid #000;
+	box-shadow: 9px 9px 0 #000;
+	padding: 6px 30px 4px;
+	text-align: center;
+	max-width: calc(100vw - 30px);
+}
+.bb-box b {
+	display: block;
+	font-family: 'Bangers', Impact, sans-serif;
+	font-weight: 400;
+	font-size: clamp(36px, 10vw, 76px);
+	line-height: 1;
+	color: #fff;
+	-webkit-text-stroke: 2px #000;
+	text-shadow: 4px 4px 0 #000;
+	letter-spacing: 1.5px;
+	white-space: nowrap;
+}
+.bb-box small {
+	display: block;
+	font-family: 'Bangers', Impact, sans-serif;
+	font-size: clamp(18px, 4.5vw, 28px);
+	color: #ffd23f;
+	text-shadow: 2px 2px 0 #000;
+	letter-spacing: 1px;
+}
+.bb-turn .bb-box {
+	background: #ffd23f;
+}
+.bb-turn .bb-box b {
+	color: #fff;
+}
+.bb-villain .bb-box {
+	background: linear-gradient(135deg, #4c1d95, #8f1020);
+}
+.bb-attack .bb-box {
+	background: #e23636;
+}
+.bb-scheme .bb-box {
+	background: #7c3aed;
+}
+.bb-stage .bb-box {
+	background: #111;
+}
+.bb-stage .bb-box b {
+	color: #ffd23f;
+}
+.bb-plain .bb-box {
+	background: #1f4fd8;
+}
+@keyframes bb-life {
+	0% {
+		opacity: 0;
+		transform: translateX(-60vw);
+	}
+	14% {
+		opacity: 1;
+		transform: translateX(3vw);
+	}
+	22% {
+		transform: translateX(0);
+	}
+	78% {
+		opacity: 1;
+		transform: translateX(0);
+	}
+	100% {
+		opacity: 0;
+		transform: translateX(50vw);
+	}
+}
+@keyframes bb-lines {
+	from {
+		background-position: 0 0;
+	}
+	to {
+		background-position: 400px 0;
+	}
+}
+
+/* floating numbers */
+.floaters {
+	position: fixed;
+	inset: 0;
+	z-index: 440;
+	pointer-events: none;
+}
+.floater {
+	position: absolute;
+	transform: translate(-50%, -50%);
+	font-family: 'Bangers', Impact, sans-serif;
+	font-weight: 400;
+	font-size: 34px;
+	letter-spacing: 1px;
+	-webkit-text-stroke: 2px #000;
+	text-shadow: 3px 3px 0 #000;
+	white-space: nowrap;
+	animation: float-up 1.4s cubic-bezier(0.2, 1.5, 0.4, 1) var(--d, 0ms) both;
+}
+.floater.big {
+	font-size: 54px;
+}
+.fl-dmg {
+	color: #ff3b3b;
+}
+.fl-heal {
+	color: #4ee07a;
+}
+.fl-thr {
+	color: #ffb02e;
+}
+.fl-thw {
+	color: #5ad1ff;
+}
+.fl-ko {
+	color: #ffd23f;
+	font-size: 56px;
+}
+.fl-word {
+	color: #fff;
+	font-size: 24px;
+}
+@keyframes float-up {
+	0% {
+		transform: translate(-50%, -20%) scale(0.3);
+		opacity: 0;
+	}
+	20% {
+		transform: translate(-50%, -60%) scale(1.25);
+		opacity: 1;
+	}
+	35% {
+		transform: translate(-50%, -70%) scale(1);
+	}
+	80% {
+		opacity: 1;
+	}
+	100% {
+		transform: translate(-50%, -150%) scale(1);
+		opacity: 0;
+	}
+}
+
+/* screen flashes */
+.screen-flash {
+	position: fixed;
+	inset: 0;
+	z-index: 430;
+	pointer-events: none;
+	animation: sf 0.65s ease-out forwards;
+}
+.sf-red {
+	box-shadow: inset 0 0 120px 30px rgba(226, 54, 54, 0.75);
+}
+.sf-white {
+	background: rgba(255, 255, 255, 0.7);
+}
+.sf-gold {
+	background: radial-gradient(circle, rgba(255, 210, 63, 0.6), transparent 70%);
+}
+@keyframes sf {
+	to {
+		opacity: 0;
+	}
+}
+
+/* victory / defeat */
+.gameover {
+	position: fixed;
+	inset: 0;
+	z-index: 950;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+	overflow: hidden;
+	animation: mp-fade 0.3s ease-out;
+}
+.gameover.won {
+	background:
+		repeating-conic-gradient(from 0deg at 50% 45%, rgba(255, 210, 63, 0.35) 0 8deg, transparent 8deg 18deg),
+		radial-gradient(circle at 50% 45%, #ffe27a, #f59e0b 40%, #7c2d12);
+}
+.gameover.lost {
+	background:
+		radial-gradient(rgba(0, 0, 0, 0.35) 1.4px, transparent 1.8px) 0 0 / 7px 7px,
+		radial-gradient(circle at 50% 40%, #4b1020, #12060b 70%);
+}
+.go-card {
+	position: relative;
+	width: min(440px, 100%);
+	background: #fffbea;
+	color: #111;
+	border: 5px solid #000;
+	border-radius: 10px;
+	box-shadow: 10px 11px 0 #000;
+	padding: 18px 18px 20px;
+	text-align: center;
+	transform: rotate(-1deg);
+	animation: mp-pop 0.5s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.lost .go-card {
+	background: #e8e3df;
+	filter: saturate(0.6);
+}
+.go-art {
+	width: 150px;
+	margin: -70px auto 8px;
+	transform: rotate(4deg);
+}
+.go-art img,
+.go-art .textcard {
+	width: 100%;
+	border: 4px solid #000;
+	border-radius: 10px;
+	box-shadow: 6px 7px 0 #000;
+}
+.lost .go-art {
+	filter: grayscale(0.2) contrast(1.2);
+	transform: rotate(-6deg);
+}
+.go-word {
+	font-family: 'Bangers', Impact, sans-serif !important;
+	font-weight: 400;
+	font-size: clamp(56px, 16vw, 96px) !important;
+	line-height: 1;
+	margin: 4px 0 8px;
+	color: #ffd23f !important;
+	-webkit-text-stroke: 3px #000;
+	text-shadow: 6px 6px 0 #000 !important;
+	transform: skew(-6deg);
+}
+.lost .go-word {
+	color: #e23636 !important;
+}
+.go-card p {
+	font-size: 17px;
+	margin: 0 0 14px;
+}
+.confetti i {
+	position: absolute;
+	top: -20px;
+	width: 10px;
+	height: 16px;
+	background: var(--c);
+	border: 1.5px solid #000;
+	animation: confetti 2.6s linear var(--d) infinite;
+}
+@keyframes confetti {
+	0% {
+		transform: translateY(0) rotate(0);
+	}
+	100% {
+		transform: translateY(110vh) rotate(720deg);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.intro,
+	.intro *,
+	.bigbanner,
+	.floater,
+	.confetti,
+	.screen-flash {
+		animation-duration: 0.01s !important;
+		animation-iteration-count: 1 !important;
+	}
+}

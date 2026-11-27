@@ -6,8 +6,9 @@
 // Drag a hand card onto the table to play it, drag your hero or an ally onto an enemy to attack or
 // onto a scheme to thwart. Everything also works by tapping.
 import type * as React from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { BigBanner, flashScreen, flipCard, type Floater, Floaters, GameOver, Intro, jolt, lunge } from './show'
 import { animateArrival, effectsOn, type Fx, FxLayer, HERO_FX, heroFx, setEffects } from './fx'
 import { card, has } from '../data/data'
 import {
@@ -283,6 +284,95 @@ export function Board({
 	}
 	const dragProps = (uid: number, mine: boolean) =>
 		mine && canControl(me) ? { onPointerDown: (e: React.PointerEvent) => onDown(uid, e) } : { onClick: () => tapCard(uid) }
+
+	// ── the show: floating numbers, the villain lunging, hero flips, new villain stages
+	const [floaters, setFloaters] = useState<Floater[]>([])
+	const prevShow = useRef(g)
+	useEffect(() => {
+		const before = prevShow.current
+		prevShow.current = g
+		if (before === g || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+		const el = (u: number) => document.querySelector(`.board [data-uid="${u}"]:not(.hcard)`) as HTMLElement | null
+		const items: Floater[] = []
+		const now = performance.now()
+		const at = (u: number, text: string, kind: Floater['kind'], big = false) => {
+			const e = el(u)
+			if (!e) return
+			const r = e.getBoundingClientRect()
+			if (r.bottom < 0 || r.top > window.innerHeight) return
+			items.push({ key: `${u}-${kind}-${now}-${items.length}`, x: r.left + r.width / 2 + (items.length % 2 ? 14 : -14), y: r.top + r.height * 0.4, text, kind, big })
+		}
+		for (const x of Object.values(g.insts)) {
+			const b = before.insts[x.uid]
+			if (!b) continue
+			const on = ['villain', 'engaged', 'identity', 'play', 'main', 'side'].includes(x.zone)
+			if (on && b.zone === x.zone) {
+				if (x.dmg > b.dmg) at(x.uid, `-${x.dmg - b.dmg}`, 'dmg', x.dmg - b.dmg >= 5)
+				if (x.dmg < b.dmg) at(x.uid, `+${b.dmg - x.dmg}♥`, 'heal')
+				if (x.thr > b.thr) at(x.uid, `+${x.thr - b.thr}⚠`, 'thr', x.thr - b.thr >= 4)
+				if (x.thr < b.thr) at(x.uid, `-${b.thr - x.thr}⚠`, 'thw')
+				if (x.stun > b.stun) at(x.uid, 'STUNNED!', 'word')
+				if (x.conf > b.conf) at(x.uid, 'CONFUSED!', 'word')
+				if (x.tough > b.tough) at(x.uid, 'TOUGH!', 'word')
+			}
+			// a minion knocked out
+			if (b.zone === 'engaged' && (x.zone === 'encDiscard' || x.zone === 'discard')) {
+				const e = el(x.uid)
+				if (!e) {
+					// it's gone from the table already: show the KO where the engaged zone is
+					const z = document.querySelector('.board .along') as HTMLElement | null
+					if (z) {
+						const r = z.getBoundingClientRect()
+						items.push({ key: `ko-${x.uid}-${now}`, x: r.left + r.width / 2, y: r.top + r.height / 2, text: 'K.O.!', kind: 'ko', big: true })
+					}
+				}
+			}
+		}
+		if (items.length) {
+			setFloaters((f) => [...f, ...items].slice(-14))
+			setTimeout(() => setFloaters((f) => f.filter((z) => !items.includes(z))), 1500)
+		}
+		if (!effectsOn()) return
+		// the villain (or a minion) lunges at the hero it attacks
+		if (g.banner && g.banner !== before.banner && /attacks!$/.test(g.banner)) {
+			const name = g.banner.replace(/ attacks!$/, '')
+			const attacker = Object.values(g.insts).find((x) => (x.zone === 'villain' || x.zone === 'engaged') && card(x.code).n === name)
+			const target = g.players[me] ? el(g.players[me].ident) : null
+			if (attacker) requestAnimationFrame(() => lunge(el(attacker.uid), target))
+		}
+		// a hero flips: the identity card turns over
+		for (const p of g.players) {
+			const b = before.players[p.id]
+			if (b && b.form !== p.form) requestAnimationFrame(() => flipCard(el(p.ident)))
+		}
+		// a new villain stage: flash and a jolt
+		for (const a of g.areas) {
+			const b = before.areas[a.id]
+			if (b && g.insts[a.villain] && before.insts[a.villain] && g.insts[a.villain].code !== before.insts[a.villain].code) {
+				flashScreen('white')
+				requestAnimationFrame(() => jolt(el(a.villain), 14))
+			}
+		}
+		if (g.phase === 'over' && before.phase !== 'over') flashScreen(g.winner === 'heroes' ? 'gold' : 'red')
+	}, [g, me])
+
+	// ── the intro splash, once per game
+	const introKey = `champions.intro.${g.areas.map((a) => a.main).join('-')}.${g.players.map((p) => p.hero).join('-')}.${g.rng % 9973}`
+	const [intro, setIntro] = useState(() => {
+		try {
+			return g.round === 1 && g.phase !== 'over' && effectsOn() && !sessionStorage.getItem(introKey)
+		} catch {
+			return false
+		}
+	})
+	const endIntro = useCallback(() => {
+		setIntro(false)
+		try {
+			sessionStorage.setItem(introKey, '1')
+		} catch {
+			/* private mode */
+		}
+	}, [introKey])
 
 	// ── cards landing on the table and heroes hitting enemies, each in their own style (see fx.tsx)
 	const slamAt = useRef<{ uid: number; x: number; y: number; t: number } | null>(null)
@@ -605,23 +695,7 @@ export function Board({
 			startAim={(a) => (setSel(null), setAim(a))}
 		/>
 	)
-	const over = g.phase === 'over' && (
-		<div className="modal">
-			<div className="modal-box over">
-				<h2>{g.banner}</h2>
-				<p>
-					{g.mode === 'coop'
-						? g.winner === 'heroes'
-							? `${card(ar.villainSeq[ar.villainSeq.length - 1]).n} is defeated in round ${g.round}.`
-							: 'The villain got away with it this time.'
-						: `${g.winner} take the day.`}
-				</p>
-				<button className="primary" onClick={onMenu}>
-					Back to the menu
-				</button>
-			</div>
-		</div>
-	)
+	const over = g.phase === 'over' && <GameOver g={g} me={me} onMenu={onMenu} />
 
 	if (layout === 'console')
 		return (
@@ -661,8 +735,16 @@ export function Board({
 						</div>
 					</div>
 				)}
-				{g.banner && <Banner key={g.log.length} text={g.banner} />}
+				{g.banner && g.phase !== 'over' && <BigBanner key={g.log.length} text={g.banner} />}
 				{over}
+				{createPortal(
+					<>
+						<FxLayer items={fxs} />
+						<Floaters items={floaters} />
+						{intro && <Intro g={g} me={me} onDone={endIntro} />}
+					</>,
+					document.body,
+				)}
 			</div>
 		)
 	const idAct = canControl(me) ? actionsFor(g, me, pl.ident) : []
@@ -831,7 +913,14 @@ export function Board({
 			{statusBar}
 			{tabletop}
 			{handbar}
-			{createPortal(<FxLayer items={fxs} />, document.body)}
+			{createPortal(
+				<>
+					<FxLayer items={fxs} />
+					<Floaters items={floaters} />
+					{intro && <Intro g={g} me={me} onDone={endIntro} />}
+				</>,
+				document.body,
+			)}
 			<div className="trays">
 				{prompt}
 				{waiting}
@@ -875,7 +964,7 @@ export function Board({
 					</div>
 				</div>
 			)}
-			{g.banner && <Banner key={g.log.length} text={g.banner} />}
+			{g.banner && g.phase !== 'over' && <BigBanner key={g.log.length} text={g.banner} />}
 			{g.spotlight !== undefined && g.insts[g.spotlight] && <Spotlight code={g.insts[g.spotlight].code} />}
 			{over}
 		</div>
@@ -885,15 +974,6 @@ export function Board({
 /** A comic caption box: the label in the corner of each panel. */
 function Caption({ children }: { children: React.ReactNode }) {
 	return <div className="caption">{children}</div>
-}
-
-function Banner({ text }: { text: string }) {
-	const [on, setOn] = useState(true)
-	useEffect(() => {
-		const t = setTimeout(() => setOn(false), 1400)
-		return () => clearTimeout(t)
-	}, [])
-	return on ? <div className="banner">{text}</div> : null
 }
 
 function Spotlight({ code }: { code: string }) {
