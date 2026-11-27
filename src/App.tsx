@@ -3,6 +3,7 @@ import { apply, newGame, type Game, type Intent, type PlayerSetup, type Setup } 
 import { Board } from './ui/Board'
 import { Home, JoinScreen, NewGame, type SetupResult } from './ui/Screens'
 import { hostGame, joinGame, newGameCode, type Conn, type Host } from './net/transport'
+import { JoinQr } from './ui/Qr'
 import { clearJoinFromUrl, isGuestMsg, isHostMsg, joinCodeFromUrl, joinLink, type HostMsg } from './net/online'
 
 /** Phones (touch, short side under 600px) get the compact "pocket" table; iPads and computers the full one. */
@@ -216,7 +217,9 @@ export default function App() {
 		setViewer(0)
 	}
 
-	const saved = !session ? loadSave() : null
+	const saved0 = !session ? loadSave() : null
+	// a finished game (won or lost) isn't something to continue
+	const saved = saved0 && saved0.history[saved0.history.length - 1]?.phase !== 'over' ? saved0 : null
 
 	if (!session || !g) {
 		if (screen.k === 'lobby' && lobby)
@@ -229,6 +232,15 @@ export default function App() {
 								<p>
 									Game code: <b className="code">{lobby.code}</b>
 								</p>
+								<div className="nearby">
+									<JoinQr text={joinLink(lobby.code)} />
+									<p className="sub">Sitting together? Your friend points their phone's camera at this code, or you AirDrop the link.</p>
+								</div>
+								{typeof navigator !== 'undefined' && 'share' in navigator && (
+									<button className="primary" onClick={() => void navigator.share({ title: 'Marvel Champions', text: `Join my Marvel Champions game (code ${lobby.code})`, url: joinLink(lobby.code) }).catch(() => {})}>
+										Share the link (AirDrop, Messages…)
+									</button>
+								)}
 								<p>
 									Or send this link: <input readOnly value={joinLink(lobby.code)} onFocus={(e) => e.target.select()} />
 								</p>
