@@ -63,7 +63,7 @@ const actor = (g: Game) => (g.queue[0] ? g.queue[0].who : g.active)
 
 export default function App() {
 	const [session, setSession] = useState<Session | null>(null)
-	const [screen, setScreen] = useState<{ k: 'home' } | { k: 'new' } | { k: 'join'; code?: string } | { k: 'lobby' }>(() => {
+	const [screen, setScreen] = useState<{ k: 'home' } | { k: 'new'; host?: boolean } | { k: 'join'; code?: string } | { k: 'lobby' }>(() => {
 		const j = joinCodeFromUrl()
 		return j ? { k: 'join', code: j } : { k: 'home' }
 	})
@@ -253,12 +253,12 @@ export default function App() {
 					</div>
 				</div>
 			)
-		if (screen.k === 'new') return <NewGame onStart={start} onBack={() => setScreen({ k: 'home' })} />
+		if (screen.k === 'new') return <NewGame onStart={start} onBack={() => setScreen({ k: 'home' })} hostOnline={screen.host} />
 		if (screen.k === 'join')
 			return screen.code ? (
 				<NewGame onStart={() => {}} onBack={() => setScreen({ k: 'home' })} onGuest={(p) => openGuest(screen.code!, { ...p, name: 'Friend' })} />
 			) : (
-				<JoinScreen onBack={() => setScreen({ k: 'home' })} onJoin={(code) => setScreen({ k: 'join', code })} />
+				<JoinScreen onBack={() => setScreen({ k: 'home' })} onJoin={(code) => setScreen({ k: 'join', code })} onHost={() => setScreen({ k: 'new', host: true })} />
 			)
 		return (
 			<Home

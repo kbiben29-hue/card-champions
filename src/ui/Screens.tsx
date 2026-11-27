@@ -60,8 +60,8 @@ export function Home({ onNew, onResume, resumeLabel, onJoin }: { onNew: () => vo
 						<Face code="03001a" />
 						<Face code="01029a" />
 					</span>
-					<b>Join a friend</b>
-					<span>Enter the code your friend sent you.</span>
+					<b>Play with a friend</b>
+					<span>Host a game (with a code and QR code for your friend), or join theirs.</span>
 				</button>
 			</div>
 			<p className="fine">Card data and pictures from MarvelCDB. Fan project — not affiliated with Fantasy Flight Games or Marvel.</p>
@@ -105,11 +105,23 @@ export function Face({ code, className = '' }: { code: string; className?: strin
 	)
 }
 
-export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: SetupResult) => void; onBack: () => void; guestMode?: Mode; onGuest?: (p: PlayerSetup) => void }) {
+export function NewGame({
+	onStart,
+	onBack,
+	guestMode,
+	onGuest,
+	hostOnline,
+}: {
+	onStart: (r: SetupResult) => void
+	onBack: () => void
+	guestMode?: Mode
+	onGuest?: (p: PlayerSetup) => void
+	hostOnline?: boolean
+}) {
 	const guest = !!onGuest
 	const [step, setStep] = useState(guest ? 1 : 0)
-	const [mode, setMode] = useState<Mode>(guestMode ?? 'solo')
-	const [online, setOnline] = useState(false)
+	const [mode, setMode] = useState<Mode>(guestMode ?? (hostOnline ? 'coop' : 'solo'))
+	const [online, setOnline] = useState(!!hostOnline)
 	const [count, setCount] = useState(2)
 	const [coll, setColl] = useState<Set<string> | null>(() => loadCollection())
 	const [showColl, setShowColl] = useState(false)
@@ -187,9 +199,10 @@ export function NewGame({ onStart, onBack, guestMode, onGuest }: { onStart: (r: 
 			<div className="wiz-body">
 				{step === 0 && (
 					<>
-						<h2>How do you want to play?</h2>
+						<h2>{hostOnline ? 'Host a game: co-op or 1 v 1?' : 'How do you want to play?'}</h2>
+						{hostOnline && <p className="sub">Pick the mode, then your hero and the villain. At the end you get a game code and a QR code for your friend.</p>}
 						<div className="mode-grid">
-							{MODES.map((m) => (
+							{MODES.filter((m) => !hostOnline || m.id === 'coop' || m.id === 'pvp').map((m) => (
 								<button key={m.id} className={`mode-card m-${m.id} ${mode === m.id ? 'picked' : ''}`} onClick={() => setMode(m.id)}>
 									<span className={`faces n${m.faces.length}`}>
 										{m.faces.map((f, k) => (
@@ -633,7 +646,7 @@ function Collection({ coll, onChange, onClose }: { coll: Set<string> | null; onC
 	)
 }
 
-export function JoinScreen({ onJoin, onBack, initial }: { onJoin: (code: string) => void; onBack: () => void; initial?: string }) {
+export function JoinScreen({ onJoin, onBack, onHost, initial }: { onJoin: (code: string) => void; onBack: () => void; onHost?: () => void; initial?: string }) {
 	const [code, setCode] = useState(initial ?? '')
 	return (
 		<div className="screen wizard">
@@ -641,13 +654,26 @@ export function JoinScreen({ onJoin, onBack, initial }: { onJoin: (code: string)
 				<button onClick={onBack}>← Home</button>
 			</div>
 			<div className="wiz-body">
-				<h2>Join a friend</h2>
-				<div className="panel">
-					<p>Type the game code your friend sees on their screen (or open the link they sent).</p>
+				<h2>Play with a friend</h2>
+				{onHost && (
+					<div className="panel friend-choice">
+						<h3>Host a game</h3>
+						<p>You pick the mode (co-op or 1 v 1), your hero and the villain. Then you get a game code and a QR code to show your friend.</p>
+						<button className="primary" onClick={onHost}>
+							Host a game
+						</button>
+					</div>
+				)}
+				<div className="panel friend-choice">
+					<h3>Join your friend's game</h3>
+					<p>
+						<b>Sitting together?</b> Open your phone's <b>Camera app</b> and point it at the QR code on your friend's screen, then tap the link. That opens their game straight away.
+					</p>
+					<p>Or type the game code they see on their screen:</p>
 					<div className="row">
 						<input value={code} onChange={(e) => setCode(e.target.value.trim().toLowerCase())} placeholder="game code" autoCapitalize="none" autoCorrect="off" />
 						<button className="primary" disabled={code.length < 4} onClick={() => onJoin(code)}>
-							Next
+							Join
 						</button>
 					</div>
 				</div>
